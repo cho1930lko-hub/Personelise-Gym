@@ -1,8 +1,8 @@
 import streamlit as st
-import gspread
-from google.oauth2.service_account import Credentials
+# import gspread  # Sheet बाद में add होगा
+# from google.oauth2.service_account import Credentials
 from datetime import datetime, date
-import json
+# import json
 import pandas as pd
 
 # ─────────────────────────────────────────────
@@ -206,40 +206,15 @@ if not st.session_state.weekly:
 # Sheet name: "Gym Workout Log"
 # Headers:    Date | Time | Body Part | Exercise | Weight (kg) | Status
 # ─────────────────────────────────────────────
-@st.cache_resource(show_spinner=False)
+# ─── Google Sheet — बाद में add होगा ───
 def get_sheet():
-    try:
-        scope = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds_dict = json.loads(st.secrets["SERVICE_ACCOUNT_JSON"])
-        creds  = Credentials.from_service_account_info(creds_dict, scopes=scope)
-        client = gspread.authorize(creds)
-        return client.open("Gym Workout Log").sheet1
-    except Exception:
-        return None
+    return None  # Sheet जोड़ने पर यहाँ code आएगा
 
 def save_to_sheet(date_str, time_str, body_part, exercise, weight=0):
-    sheet = get_sheet()
-    if sheet:
-        try:
-            sheet.append_row([
-                date_str, time_str, body_part,
-                exercise, f"{weight} kg", "✔ Done"
-            ])
-            return True
-        except Exception:
-            return False
-    return False
+    return False  # Sheet जोड़ने पर activate होगा
 
-# Sheet connection status check
 def sheet_status():
-    try:
-        s = get_sheet()
-        return s is not None
-    except Exception:
-        return False
+    return False  # Sheet जोड़ने पर True होगा
 
 # ─────────────────────────────────────────────
 # SIDEBAR
