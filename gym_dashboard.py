@@ -3,15 +3,13 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, date
 import json
-import requests
-import time
-import hashlib
+import pandas as pd
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="💪 Smart AI Gym Dashboard",
+    page_title="💪 Smart Gym Dashboard",
     page_icon="🏋️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -190,32 +188,25 @@ defaults = {
     "checked": {},
     "workout_log": [],
     "streak": 0,
-    "ai_response": "",
-    "ai_question": "",
-    "ai_cache": {},           # ✅ Cache — same question दोबारा free में मिलेगा
-    "ai_call_count": 0,       # ✅ Daily counter
-    "ai_last_reset": date.today().isoformat(),
     "weekly": {},
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# Daily counter reset
-if st.session_state.ai_last_reset != date.today().isoformat():
-    st.session_state.ai_call_count = 0
-    st.session_state.ai_last_reset = date.today().isoformat()
-
-# Weekly init
-days_hindi = {"Mon":"सोम","Tue":"मंगल","Wed":"बुध","Thu":"गुरु","Fri":"शुक्र","Sat":"शनि","Sun":"रवि"}
+days_hindi = {
+    "Mon": "सोम", "Tue": "मंगल", "Wed": "बुध", "Thu": "गुरु",
+    "Fri": "शुक्र", "Sat": "शनि", "Sun": "रवि"
+}
 if not st.session_state.weekly:
     st.session_state.weekly = {d: False for d in days_hindi}
 
-DAILY_LIMIT = 20  # दिन में max AI calls
-
 # ─────────────────────────────────────────────
 # GOOGLE SHEETS
+# Sheet name: "Gym Workout Log"
+# Headers:    Date | Time | Body Part | Exercise | Weight (kg) | Status
 # ─────────────────────────────────────────────
+@st.cache_resource(show_spinner=False)
 def get_sheet():
     try:
         scope = [
@@ -230,81 +221,25 @@ def get_sheet():
         return None
 
 def save_to_sheet(date_str, time_str, body_part, exercise, weight=0):
-    """
-    Sheet columns: Date | Time | Body Part | Exercise | Weight (kg) | Status
-    """
     sheet = get_sheet()
     if sheet:
         try:
-            sheet.append_row([date_str, time_str, body_part, exercise, f"{weight} kg", "✔ Done"])
+            sheet.append_row([
+                date_str, time_str, body_part,
+                exercise, f"{weight} kg", "✔ Done"
+            ])
             return True
         except Exception:
             return False
     return False
 
-# ─────────────────────────────────────────────
-# GROQ AI — 3 Layer API Protection
-# ─────────────────────────────────────────────
-def cache_key(prompt, muscle):
-    return hashlib.md5(f"{prompt.strip().lower()}_{muscle}".encode()).hexdigest()
-
-def ask_ai_groq(prompt, muscle_group):
-    # Layer 1 — Daily limit
-    if st.session_state.ai_call_count >= DAILY_LIMIT:
-        return f"⚠️ आज की {DAILY_LIMIT} calls limit पूरी हो गई। कल फिर use करो। 😊"
-
-    # Layer 2 — Cache check
-    ck = cache_key(prompt, muscle_group)
-    if ck in st.session_state.ai_cache:
-        return st.session_state.ai_cache[ck] + "\n\n✅ _(Cached — API call नहीं हुई)_"
-
-    # Layer 3 — API call with retry
+# Sheet connection status check
+def sheet_status():
     try:
-        groq_key = st.secrets.get("GROQ_API_KEY", "")
-        if not groq_key:
-            return "⚠️ GROQ_API_KEY Streamlit Secrets में add करो।"
-
-        headers = {
-            "Authorization": f"Bearer {groq_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "llama-3.1-8b-instant",
-            "messages": [
-                {"role": "system", "content": (
-                    f"तुम expert Hindi fitness coach हो। "
-                    f"User आज {muscle_group} workout कर रहा है। "
-                    "Hindi/Hinglish में जवाब दो। "
-                    "Practical advice, 150-200 words, emojis use करो।"
-                )},
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 400,
-            "temperature": 0.7
-        }
-
-        for attempt in range(2):
-            resp = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers, json=payload, timeout=15
-            )
-            if resp.status_code == 200:
-                result = resp.json()["choices"][0]["message"]["content"]
-                st.session_state.ai_cache[ck] = result   # Cache save
-                st.session_state.ai_call_count += 1       # Counter++
-                return result
-            elif resp.status_code == 429:
-                if attempt == 0:
-                    time.sleep(3)
-                    continue
-                return "⏳ Groq busy है (Rate limit)। 30 seconds रुको और try करो।"
-            else:
-                return f"❌ API Error {resp.status_code} — थोड़ी देर बाद try करो।"
-
-    except requests.Timeout:
-        return "⏰ Timeout हो गई। Internet check करो।"
-    except Exception as e:
-        return f"❌ Error: {str(e)}"
+        s = get_sheet()
+        return s is not None
+    except Exception:
+        return False
 
 # ─────────────────────────────────────────────
 # SIDEBAR
@@ -321,6 +256,19 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+    # Google Sheet Status
+    connected = sheet_status()
+    dot_color = "#22c55e" if connected else "#ef4444"
+    dot_text  = "Sheet Connected ✅" if connected else "Sheet Not Connected ❌"
+    st.markdown(f"""
+    <div style='background:#0d1117; border:1px solid #1e2d40; border-radius:10px;
+                padding:8px 12px; margin-bottom:12px; font-size:12px;
+                display:flex; align-items:center; gap:8px;'>
+        <span style='color:{dot_color}; font-size:16px;'>●</span>
+        <span style='color:{dot_color};'>{dot_text}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("### 🏋️ Workout Menu")
     menu = st.radio("Select", list(MUSCLE_DATA.keys()), label_visibility="collapsed")
 
@@ -330,21 +278,6 @@ with st.sidebar:
     c1, c2 = st.columns(2)
     with c1: st.metric("🔥 Streak", f"{st.session_state.streak}d")
     with c2: st.metric("✅ Done",   str(total_done))
-
-    # AI usage meter
-    used      = st.session_state.ai_call_count
-    remaining = DAILY_LIMIT - used
-    ai_pct    = int((used / DAILY_LIMIT) * 100)
-    ai_clr    = "#22c55e" if ai_pct < 60 else "#eab308" if ai_pct < 85 else "#ef4444"
-    st.markdown(f"""
-    <div style='margin:10px 0 4px; font-size:12px; color:#94a3b8;'>
-        🤖 AI Calls: {used}/{DAILY_LIMIT} आज
-    </div>
-    <div style='background:#1e2d40; border-radius:99px; height:6px;'>
-        <div style='width:{ai_pct}%; height:100%; background:{ai_clr}; border-radius:99px;'></div>
-    </div>
-    <div style='font-size:11px; color:{ai_clr}; margin-top:3px;'>{remaining} calls बाकी</div>
-    """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("**📊 सभी Groups**")
@@ -356,8 +289,10 @@ with st.sidebar:
         clr = data["color"]
         st.markdown(f"""
         <div style='margin-bottom:8px'>
-            <div style='display:flex; justify-content:space-between; font-size:12px; color:#94a3b8; margin-bottom:3px;'>
-                <span>{grp}</span><span style='color:{clr}; font-weight:700'>{p}%</span>
+            <div style='display:flex; justify-content:space-between;
+                        font-size:12px; color:#94a3b8; margin-bottom:3px;'>
+                <span>{grp}</span>
+                <span style='color:{clr}; font-weight:700'>{p}%</span>
             </div>
             <div style='background:#1e2d40; border-radius:99px; height:5px;'>
                 <div style='width:{p}%; height:100%; background:{clr}; border-radius:99px;'></div>
@@ -366,8 +301,11 @@ with st.sidebar:
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("<div style='color:#475569;font-size:11px;text-align:center;'>Made with ❤️ for Fitness<br>Powered by Groq AI</div>",
-                unsafe_allow_html=True)
+    st.markdown("""
+    <div style='color:#475569; font-size:11px; text-align:center;'>
+        Made with ❤️ for Fitness<br>by Shadab
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # MAIN HEADER
@@ -390,11 +328,13 @@ st.markdown(f"""
         {menu.upper()} WORKOUT
     </h1>
     <p style='color:#64748b; margin:4px 0 0; font-size:14px;'>
-        {date.today().strftime("%A, %d %B %Y")} &nbsp;|&nbsp; {done_count}/{total_count} exercises complete
+        {date.today().strftime("%A, %d %B %Y")}
+        &nbsp;|&nbsp; {done_count}/{total_count} exercises complete
     </p>
 </div>
 """, unsafe_allow_html=True)
 
+# Progress Bar
 st.markdown(f"""
 <div style='margin-bottom:20px;'>
     <div style='display:flex; justify-content:space-between; margin-bottom:6px;'>
@@ -412,9 +352,9 @@ st.markdown(f"""
 st.info(muscle["info"])
 
 # ─────────────────────────────────────────────
-# TABS
+# TABS — 2 tabs only (AI हटाया)
 # ─────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["🏋️ Workout", "🤖 AI Coach", "📊 Log & Stats"])
+tab1, tab2 = st.tabs(["🏋️ Workout", "📊 Log & Stats"])
 
 # ══════════════════════════════════════════
 # TAB 1 — WORKOUT
@@ -424,7 +364,7 @@ with tab1:
 
     with col_ex:
         st.markdown("### Exercise List")
-        st.caption("⚖️ पहले weight डालो, फिर checkbox tick करो → Sheet में save होगा")
+        st.caption("⚖️ पहले weight डालो → फिर ✅ tick करो → Google Sheet में save होगा")
 
         for ex in exercises:
             key     = f"{menu}_{ex['name']}"
@@ -434,7 +374,6 @@ with tab1:
             nc      = color        if is_done else "#e2e8f0"
             strike  = "line-through" if is_done else "none"
 
-            # ✅ 4 columns: check | info | sets | weight
             col_chk, col_inf, col_set, col_wt = st.columns([1, 5, 2, 2])
 
             with col_chk:
@@ -442,24 +381,26 @@ with tab1:
                 if checked != is_done:
                     st.session_state.checked[key] = checked
                     if checked:
-                        now      = datetime.now()
-                        wt_val   = st.session_state.get(f"wt_{key}", 0.0)
-                        bp       = menu.split(" ", 1)[1] if " " in menu else menu
-                        entry    = {
+                        now    = datetime.now()
+                        wt_val = st.session_state.get(f"wt_{key}", 0.0)
+                        bp     = menu.split(" ", 1)[1] if " " in menu else menu
+                        entry  = {
                             "Date":        now.strftime("%d-%m-%Y"),
                             "Time":        now.strftime("%I:%M %p"),
                             "Body Part":   bp,
                             "Exercise":    ex["name"],
-                            "Weight (kg)": wt_val,   # ✅ weight
+                            "Weight (kg)": wt_val,
                             "Status":      "✔ Done"
                         }
                         st.session_state.workout_log.insert(0, entry)
-                        save_to_sheet(
+                        saved = save_to_sheet(
                             entry["Date"], entry["Time"],
-                            entry["Body Part"], entry["Exercise"],
-                            wt_val                               # ✅ sheet में
+                            entry["Body Part"], entry["Exercise"], wt_val
                         )
-                        st.toast(f"✅ {ex['name']} — {wt_val} kg logged!", icon="💪")
+                        if saved:
+                            st.toast(f"✅ {ex['name']} — {wt_val} kg → Sheet saved!", icon="💪")
+                        else:
+                            st.toast(f"✅ {ex['name']} logged! (Sheet offline)", icon="⚠️")
                     st.rerun()
 
             with col_inf:
@@ -468,7 +409,9 @@ with tab1:
                             background:{bg}; border:1px solid {border};'>
                     <div style='font-size:15px; font-weight:700;
                                 color:{nc}; text-decoration:{strike};'>{ex["name"]}</div>
-                    <div style='font-size:12px; color:#64748b; margin-top:2px;'>💡 {ex["tip"]}</div>
+                    <div style='font-size:12px; color:#64748b; margin-top:2px;'>
+                        💡 {ex["tip"]}
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -482,10 +425,9 @@ with tab1:
                 """, unsafe_allow_html=True)
 
             with col_wt:
-                # ✅ Weight input box
                 st.number_input(
-                    "⚖️ kg",
-                    min_value=0.0, max_value=300.0, step=0.5, value=0.0,
+                    "⚖️ kg", min_value=0.0, max_value=300.0,
+                    step=0.5, value=0.0,
                     key=f"wt_{key}",
                     label_visibility="visible"
                 )
@@ -493,18 +435,23 @@ with tab1:
             st.markdown("")
 
         st.markdown("---")
+
+        # YouTube Button
         st.markdown(f"""
         <a href="{muscle['video']}" target="_blank" style="text-decoration:none;">
             <div style='background:linear-gradient(135deg,#cc0000,#ff0000);
                         color:white; padding:14px; border-radius:12px;
                         text-align:center; font-size:16px; font-weight:700;
-                        font-family:Rajdhani,sans-serif; box-shadow:0 4px 20px #ff000044;'>
+                        font-family:Rajdhani,sans-serif;
+                        box-shadow:0 4px 20px #ff000044;'>
                 🎥 YouTube पर {menu} Workout देखो →
             </div>
         </a>
         """, unsafe_allow_html=True)
 
+    # ── Right Column ──
     with col_right:
+        # Weekly Tracker
         st.markdown("### 📅 इस हफ्ते")
         cols7 = st.columns(7)
         for i, (day, hindi) in enumerate(days_hindi.items()):
@@ -513,7 +460,8 @@ with tab1:
                 bg_day = color  if val else "#1e2d40"
                 tc     = "#000" if val else "#64748b"
                 st.markdown(f"""
-                <div style='background:{bg_day}; border-radius:8px; padding:8px 2px; text-align:center;
+                <div style='background:{bg_day}; border-radius:8px; padding:8px 2px;
+                            text-align:center;
                             box-shadow:{"0 0 8px "+color+"66" if val else "none"};'>
                     <div style='font-size:10px; font-weight:700; color:{tc};'>{hindi}</div>
                     <div style='font-size:14px;'>{"✓" if val else "·"}</div>
@@ -524,20 +472,28 @@ with tab1:
                     st.rerun()
 
         gym_days = sum(1 for v in st.session_state.weekly.values() if v)
-        st.markdown(f"<div style='text-align:center;margin:10px 0;color:{color};font-weight:700;'>{gym_days}/7 दिन Gym 🏆</div>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='text-align:center;margin:10px 0;color:{color};font-weight:700;'>"
+            f"{gym_days}/7 दिन Gym 🏆</div>",
+            unsafe_allow_html=True
+        )
         st.markdown("---")
 
+        # Quick Stats
         st.markdown("### 📈 Quick Stats")
         today_str = date.today().strftime("%d-%m-%Y")
         s1, s2 = st.columns(2)
         with s1: st.metric("आज", f"{done_count}/{total_count}")
-        with s2: st.metric("Today Log", len([l for l in st.session_state.workout_log if l["Date"] == today_str]))
+        with s2: st.metric("Today Log",
+                            len([l for l in st.session_state.workout_log
+                                 if l["Date"] == today_str]))
         s3, s4 = st.columns(2)
         with s3: st.metric("🔥 Streak", f"{st.session_state.streak}d")
         with s4: st.metric("📝 Total",  len(st.session_state.workout_log))
 
         st.markdown("---")
+
+        # Streak Update
         st.markdown("### 🔥 Streak Update")
         ns = st.number_input("Streak days:", min_value=0, max_value=365,
                              value=st.session_state.streak, step=1)
@@ -546,97 +502,9 @@ with tab1:
             st.success(f"Streak: {ns} days! 🔥")
 
 # ══════════════════════════════════════════
-# TAB 2 — AI COACH
+# TAB 2 — LOG & STATS
 # ══════════════════════════════════════════
 with tab2:
-    used2      = st.session_state.ai_call_count
-    remaining2 = DAILY_LIMIT - used2
-    cached2    = len(st.session_state.ai_cache)
-    ai_pct2    = int((used2 / DAILY_LIMIT) * 100)
-    ai_clr2    = "#22c55e" if ai_pct2 < 60 else "#eab308" if ai_pct2 < 85 else "#ef4444"
-
-    st.markdown(f"""
-    <div style='background:linear-gradient(135deg,#0d1117,#0a1628);
-                border:1px solid {color}44; border-radius:16px; padding:20px; margin-bottom:16px;'>
-        <h2 style='margin:0 0 6px; color:{color}; font-family:Exo 2,sans-serif;'>🤖 AI Fitness Coach</h2>
-        <p style='color:#64748b; margin:0 0 12px; font-size:14px;'>Hindi में पूछो — workout, diet, plan, tips!</p>
-        <div style='display:flex; gap:20px; font-size:13px; flex-wrap:wrap;'>
-            <span style='color:{ai_clr2};'>⚡ {remaining2} calls बाकी आज</span>
-            <span style='color:#64748b;'>💾 {cached2} cached answers (free)</span>
-            <span style='color:#64748b;'>📊 Daily limit: {DAILY_LIMIT}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.info("💡 **API बचाने की Trick:** Same question दोबारा पूछोगे → Cached जवाब मिलेगा, API call नहीं होगी! Quick buttons try करो।")
-
-    muscle_name = menu.split(" ", 1)[1] if " " in menu else menu
-    quick_prompts = [
-        f"आज {muscle_name} के लिए best 3 exercises बताओ",
-        f"Fat loss के लिए {muscle_name} workout plan",
-        "Beginner के लिए gym routine बनाओ",
-        "Pre-workout meal क्या खाएं",
-        "Muscle gain के लिए diet tips",
-        "Recovery के tips दो",
-    ]
-
-    st.markdown("**⚡ Quick Questions:**")
-    cols3 = st.columns(3)
-    for i, qp in enumerate(quick_prompts):
-        with cols3[i % 3]:
-            if st.button(f"💬 {qp[:28]}…", key=f"qp_{i}"):
-                st.session_state.ai_question = qp
-
-    st.markdown("---")
-
-    ai_q = st.text_area(
-        "✍️ अपना सवाल लिखो:",
-        value=st.session_state.get("ai_question", ""),
-        placeholder=f"जैसे: {muscle_name} workout में क्या गलतियाँ avoid करूं?",
-        height=80, key="ai_input"
-    )
-
-    ca, cc = st.columns([3, 1])
-    with ca:
-        if st.button("🤖 AI से पूछो →", use_container_width=True):
-            if ai_q.strip():
-                ck2 = cache_key(ai_q, menu)
-                if ck2 in st.session_state.ai_cache:
-                    st.session_state.ai_response = (
-                        st.session_state.ai_cache[ck2] +
-                        "\n\n✅ _(Cached — API call नहीं हुई)_"
-                    )
-                elif used2 >= DAILY_LIMIT:
-                    st.session_state.ai_response = f"⚠️ आज की {DAILY_LIMIT} calls limit पूरी। कल try करो।"
-                else:
-                    with st.spinner("🧠 AI सोच रहा है…"):
-                        st.session_state.ai_response = ask_ai_groq(ai_q, menu)
-    with cc:
-        if st.button("🗑️ Clear", use_container_width=True):
-            st.session_state.ai_response = ""
-            st.session_state.ai_question = ""
-            st.rerun()
-
-    if st.session_state.ai_response:
-        st.markdown(f"""
-        <div style='background:#080c14; border:1px solid {color}33; border-radius:14px;
-                    padding:20px; margin-top:16px; border-left:3px solid {color};'>
-            <div style='color:#64748b; font-size:11px; margin-bottom:10px;
-                        text-transform:uppercase; letter-spacing:1px;'>🤖 AI Coach का जवाब:</div>
-            <div style='color:#e2e8f0; font-size:15px; line-height:1.8; white-space:pre-wrap;'>
-                {st.session_state.ai_response}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.markdown("<div style='color:#475569;font-size:12px;text-align:center;'>Free Groq key: <a href='https://console.groq.com' target='_blank' style='color:#60a5fa;'>console.groq.com</a></div>",
-                unsafe_allow_html=True)
-
-# ══════════════════════════════════════════
-# TAB 3 — LOG & STATS
-# ══════════════════════════════════════════
-with tab3:
     st.markdown("### 📊 Workout Statistics")
 
     total_ex    = sum(1 for v in st.session_state.checked.values() if v)
@@ -655,27 +523,28 @@ with tab3:
     st.markdown("### 📋 Workout Log")
 
     if st.session_state.workout_log:
-        import pandas as pd
         df = pd.DataFrame(st.session_state.workout_log)
 
         st.dataframe(
             df, use_container_width=True, hide_index=True,
             column_config={
-                "Date":        st.column_config.TextColumn("📅 Date",       width="small"),
-                "Time":        st.column_config.TextColumn("⏰ Time",       width="small"),
-                "Body Part":   st.column_config.TextColumn("💪 Body Part",  width="medium"),
-                "Exercise":    st.column_config.TextColumn("🏋️ Exercise",  width="large"),
+                "Date":        st.column_config.TextColumn("📅 Date",        width="small"),
+                "Time":        st.column_config.TextColumn("⏰ Time",        width="small"),
+                "Body Part":   st.column_config.TextColumn("💪 Body Part",   width="medium"),
+                "Exercise":    st.column_config.TextColumn("🏋️ Exercise",   width="large"),
                 "Weight (kg)": st.column_config.NumberColumn("⚖️ Weight kg", width="small"),
-                "Status":      st.column_config.TextColumn("✅ Status",     width="small"),
+                "Status":      st.column_config.TextColumn("✅ Status",      width="small"),
             }
         )
 
         cd, cl = st.columns([3, 1])
         with cd:
             csv = df.to_csv(index=False).encode("utf-8")
-            st.download_button("⬇️ CSV Download करो", data=csv,
-                               file_name=f"gym_log_{date.today().strftime('%d_%m_%Y')}.csv",
-                               mime="text/csv", use_container_width=True)
+            st.download_button(
+                "⬇️ CSV Download करो", data=csv,
+                file_name=f"gym_log_{date.today().strftime('%d_%m_%Y')}.csv",
+                mime="text/csv", use_container_width=True
+            )
         with cl:
             if st.button("🗑️ Clear Log", use_container_width=True):
                 st.session_state.workout_log = []
@@ -690,22 +559,24 @@ with tab3:
         st.bar_chart(bd.set_index("Body Part"))
 
         # Weight Progress
-        st.markdown("### ⚖️ Weight Progress (Exercise wise)")
+        st.markdown("### ⚖️ Weight Progress")
         if "Weight (kg)" in df.columns:
             ex_opts = df[df["Weight (kg)"] > 0]["Exercise"].unique().tolist()
             if ex_opts:
-                sel = st.selectbox("Exercise select करो:", ex_opts)
+                sel   = st.selectbox("Exercise select करो:", ex_opts)
                 ex_df = df[df["Exercise"] == sel][["Date", "Weight (kg)"]].copy()
                 ex_df = ex_df[ex_df["Weight (kg)"] > 0]
                 if not ex_df.empty:
                     st.line_chart(ex_df.set_index("Date"))
             else:
-                st.info("पहले कुछ exercises में weight डालो।")
+                st.info("पहले कुछ exercises में weight डालो — chart यहाँ दिखेगा।")
     else:
         st.markdown("""
         <div style='text-align:center; padding:60px; color:#334155;'>
             <div style='font-size:48px;'>📋</div>
             <div style='font-size:18px; margin-top:12px;'>अभी कोई log नहीं है</div>
-            <div style='font-size:13px; color:#1e2d40; margin-top:6px;'>Workout tab → exercises tick करो</div>
+            <div style='font-size:13px; color:#1e2d40; margin-top:6px;'>
+                Workout tab → exercises tick करो
+            </div>
         </div>
         """, unsafe_allow_html=True)
