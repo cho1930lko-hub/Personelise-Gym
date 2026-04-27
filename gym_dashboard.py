@@ -355,20 +355,38 @@ with tab1:
             with col_chk:
                 checked = st.checkbox("", value=is_done, key=f"cb_{key}")
                 if checked != is_done:
-                    st.session_state.checked[key] = checked
-                    if checked:
-                        now    = datetime.now()
-                        wt_val = st.session_state.get(f"wt_{key}", 0.0)
-                        bp     = menu.split(" ", 1)[1] if " " in menu else menu
-                        entry  = {
-                            "Date":        now.strftime("%d-%m-%Y"),
-                            "Time":        now.strftime("%I:%M %p"),
-                            "Body Part":   bp,
-                            "Exercise":    ex["name"],
-                            "Weight (kg)": wt_val,
-                            "Status":      "✔ Done"
-                        }
-                        st.session_state.workout_log.insert(0, entry)
+    wt_val = st.session_state.get(f"wt_{key}", 0.0)
+
+    if checked and wt_val == 0:
+        st.warning("⚠️ पहले weight डालो!")
+        st.stop()
+
+    st.session_state.checked[key] = checked
+
+    if checked:
+        now = datetime.now()
+        today = now.strftime("%d-%m-%Y")
+
+        # 🔥 AUTO STREAK
+        if st.session_state.last_workout != today:
+            st.session_state.streak += 1
+            st.session_state.last_workout = today
+
+        # 📅 WEEKLY AUTO UPDATE
+        today_day = now.strftime("%a")
+        if today_day in st.session_state.weekly:
+            st.session_state.weekly[today_day] = True
+
+        entry = {
+            "Date": today,
+            "Time": now.strftime("%I:%M %p"),
+            "Body Part": menu.split(" ", 1)[1] if " " in menu else menu,
+            "Exercise": ex["name"],
+            "Weight (kg)": wt_val,
+            "Status": "✔ Done"
+        }
+
+        st.session_state.workout_log.insert(0, entry)
                         saved = save_to_sheet(
                             entry["Date"], entry["Time"],
                             entry["Body Part"], entry["Exercise"], wt_val
