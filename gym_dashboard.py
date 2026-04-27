@@ -2,6 +2,7 @@ import streamlit as st
 # import gspread  # Sheet बाद में add होगा
 # from google.oauth2.service_account import Credentials
 from datetime import datetime, date
+from data import MUSCLE_DATA
 # import json
 import pandas as pd
 
