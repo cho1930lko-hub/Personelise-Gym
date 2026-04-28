@@ -1,23 +1,22 @@
 import streamlit as st
-# import gspread  # Sheet बाद में add होगा
-# from google.oauth2.service_account import Credentials
-from datetime import datetime, date
-from data import MUSCLE_DATA
-# import json
 import pandas as pd
+import json
+import os
+import time
+from datetime import datetime, date
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="💪 Smart Gym Dashboard",
+    page_title="💪 GYM AI Dashboard",
     page_icon="🏋️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ─────────────────────────────────────────────
-# CUSTOM CSS
+# CSS
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -37,7 +36,10 @@ st.markdown("""
     font-family: 'Rajdhani', sans-serif !important;
     font-weight: 600 !important;
 }
-h1, h2, h3 { font-family: 'Exo 2', sans-serif !important; letter-spacing: 1px; }
+h1, h2, h3 {
+    font-family: 'Exo 2', sans-serif !important;
+    letter-spacing: 1px;
+}
 [data-testid="metric-container"] {
     background: #0d1117;
     border: 1px solid #1e2d40;
@@ -52,14 +54,27 @@ h1, h2, h3 { font-family: 'Exo 2', sans-serif !important; letter-spacing: 1px; }
     font-family: 'Rajdhani', sans-serif !important;
     font-weight: 700 !important;
     font-size: 15px !important;
+    transition: all 0.2s ease !important;
 }
-.stTextInput > div > input, .stTextArea textarea {
+.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 15px #1d4ed866 !important;
+}
+.stTextInput > div > input,
+.stTextArea textarea,
+.stNumberInput input {
     background: #0d1117 !important;
     border: 1px solid #1e2d40 !important;
     color: #e2e8f0 !important;
     border-radius: 10px !important;
     font-family: 'Rajdhani', sans-serif !important;
     font-size: 15px !important;
+}
+.stSelectbox > div > div {
+    background: #0d1117 !important;
+    border: 1px solid #1e2d40 !important;
+    color: #e2e8f0 !important;
+    border-radius: 10px !important;
 }
 .stCheckbox label {
     font-family: 'Rajdhani', sans-serif !important;
@@ -77,8 +92,118 @@ h1, h2, h3 { font-family: 'Exo 2', sans-serif !important; letter-spacing: 1px; }
 hr { border-color: #1e2d40 !important; }
 .stAlert { border-radius: 12px !important; font-family: 'Rajdhani', sans-serif !important; }
 .stDataFrame { border-radius: 12px !important; overflow: hidden; }
+
+/* Glass Card */
+.glass {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 15px;
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 10px;
+}
+
+/* Progress bar smooth */
+.progress-fill {
+    transition: width 0.5s ease-in-out;
+}
+
+/* Floating Button */
+.fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 999;
+    background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+    color: white;
+    padding: 14px 18px;
+    border-radius: 50px;
+    font-size: 20px;
+    box-shadow: 0 4px 20px #1d4ed866;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    h1 { font-size: 22px !important; }
+    .block-container { padding: 1rem !important; }
+    .stMetric { font-size: 12px !important; }
+    .stTabs [data-baseweb="tab"] { font-size: 13px !important; }
+}
 </style>
 """, unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+# AI SETUP (Groq)
+# ─────────────────────────────────────────────
+try:
+    from groq import Groq
+    GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "")
+    if GROQ_API_KEY:
+        groq_client = Groq(api_key=GROQ_API_KEY)
+        AI_ENABLED = True
+    else:
+        AI_ENABLED = False
+except Exception:
+    AI_ENABLED = False
+
+def ask_ai(question, log_data):
+    if not AI_ENABLED:
+        return "⚠️ AI offline — Streamlit Secrets में GROQ_API_KEY add करो।"
+    try:
+        history = "\n".join([
+            f"{l['Body Part']} - {l['Exercise']} - {l.get('Weight (kg)', 0)}kg"
+            for l in log_data[:10]
+        ])
+        prompt = f"""
+You are an expert gym trainer. User workout history:
+{history if history else 'No history yet.'}
+
+Give short, practical advice in Hindi + English mix.
+Keep answer under 120 words. Use bullet points.
+"""
+        response = groq_client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user",   "content": question}
+            ],
+            max_tokens=250
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"❌ AI Error: {str(e)}"
+
+# ─────────────────────────────────────────────
+# SAVE / LOAD
+# ─────────────────────────────────────────────
+SAVE_FILE = "gym_data.json"
+
+def save_data():
+    try:
+        data = {
+            "checked":      st.session_state.checked,
+            "workout_log":  st.session_state.workout_log,
+            "streak":       st.session_state.streak,
+            "weekly":       st.session_state.weekly,
+            "last_workout": st.session_state.last_workout,
+            "body_weight":  st.session_state.body_weight,
+            "goal_weight":  st.session_state.goal_weight,
+        }
+        with open(SAVE_FILE, "w") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
+
+def load_data():
+    if os.path.exists(SAVE_FILE):
+        try:
+            with open(SAVE_FILE, "r") as f:
+                data = json.load(f)
+            for k, v in data.items():
+                if k not in st.session_state:
+                    st.session_state[k] = v
+        except Exception:
+            pass
 
 # ─────────────────────────────────────────────
 # EXERCISE DATA
@@ -87,208 +212,246 @@ MUSCLE_DATA = {
     "💪 Biceps": {
         "color": "#ef4444",
         "exercises": [
-            {"name": "Dumbbell Curl",       "sets": "3×12", "tip": "Elbow fixed रखो, shoulder नहीं हिलाओ"},
-            {"name": "Barbell Curl",         "sets": "4×10", "tip": "Back straight, controlled movement"},
-            {"name": "Hammer Curl",          "sets": "3×12", "tip": "Neutral grip, brachialis target"},
-            {"name": "Preacher Curl",        "sets": "3×10", "tip": "Full extension लो, slow negative"},
-            {"name": "Concentration Curl",   "sets": "3×15", "tip": "Mind-muscle connection पर focus"},
+            {"name": "Dumbbell Curl",      "sets": "3×12", "tip": "Elbow fixed रखो, shoulder नहीं हिलाओ"},
+            {"name": "Barbell Curl",       "sets": "4×10", "tip": "Back straight, controlled movement"},
+            {"name": "Hammer Curl",        "sets": "3×12", "tip": "Neutral grip, brachialis target"},
+            {"name": "Preacher Curl",      "sets": "3×10", "tip": "Full extension लो, slow negative"},
+            {"name": "Concentration Curl", "sets": "3×15", "tip": "Mind-muscle connection पर focus"},
+            {"name": "Cable Curl",         "sets": "3×12", "tip": "Constant tension बनाए रखो"},
         ],
-        "video": "https://www.youtube.com/results?search_query=best+biceps+workout+hindi",
-        "info": "💡 Biceps = Arm का front muscle. Peak बनाने के लिए Preacher Curl best है।"
+        "video": "https://www.youtube.com/embed/ykJmrZ5v0Oo",
+        "info":  "💡 Biceps = Arm का front muscle. Peak बनाने के लिए Preacher Curl best है।"
     },
     "🦾 Triceps": {
         "color": "#f97316",
         "exercises": [
-            {"name": "Tricep Pushdown",      "sets": "4×12", "tip": "Elbows body से touch रहें"},
-            {"name": "Overhead Extension",   "sets": "3×12", "tip": "Core tight, elbow flare मत करो"},
-            {"name": "Skull Crushers",       "sets": "3×10", "tip": "Weight को control करो"},
-            {"name": "Close Grip Bench",     "sets": "3×10", "tip": "Grip shoulder-width रखो"},
-            {"name": "Tricep Dips",          "sets": "3×15", "tip": "Chest को forward lean मत करो"},
+            {"name": "Tricep Pushdown",    "sets": "4×12", "tip": "Elbows body से touch रहें"},
+            {"name": "Overhead Extension", "sets": "3×12", "tip": "Core tight, elbow flare मत करो"},
+            {"name": "Skull Crushers",     "sets": "3×10", "tip": "Weight को control करो"},
+            {"name": "Close Grip Bench",   "sets": "3×10", "tip": "Grip shoulder-width रखो"},
+            {"name": "Tricep Dips",        "sets": "3×15", "tip": "Chest को forward lean मत करो"},
         ],
-        "video": "https://www.youtube.com/results?search_query=best+triceps+workout+hindi",
-        "info": "💡 Triceps = Arm का 2/3 हिस्सा! Arms बड़े करने हैं तो Triceps पर ज्यादा focus करो।"
+        "video": "https://www.youtube.com/embed/2-LAMcpzODU",
+        "info":  "💡 Triceps = Arm का 2/3 हिस्सा! Arms बड़े करने हैं तो Triceps पर ज्यादा focus करो।"
     },
     "🏔️ Shoulder": {
         "color": "#eab308",
         "exercises": [
-            {"name": "Overhead Press",       "sets": "4×10", "tip": "Core brace, knees slightly bent"},
-            {"name": "Lateral Raise",        "sets": "3×15", "tip": "Slow & controlled, elbow slight bend"},
-            {"name": "Front Raise",          "sets": "3×12", "tip": "Don't use momentum"},
-            {"name": "Arnold Press",         "sets": "3×12", "tip": "Full rotation of wrist"},
-            {"name": "Rear Delt Fly",        "sets": "3×15", "tip": "Bend forward 45°, elbow wide"},
+            {"name": "Overhead Press",  "sets": "4×10", "tip": "Core brace, knees slightly bent"},
+            {"name": "Lateral Raise",   "sets": "3×15", "tip": "Slow & controlled, elbow slight bend"},
+            {"name": "Front Raise",     "sets": "3×12", "tip": "Don't use momentum"},
+            {"name": "Arnold Press",    "sets": "3×12", "tip": "Full rotation of wrist"},
+            {"name": "Rear Delt Fly",   "sets": "3×15", "tip": "Bend forward 45°, elbow wide"},
         ],
-        "video": "https://www.youtube.com/results?search_query=best+shoulder+workout+hindi",
-        "info": "💡 3D Shoulders चाहिए? तीनों heads: Front, Side, Rear — तीनों train करो।"
+        "video": "https://www.youtube.com/embed/qEwKCR5JCog",
+        "info":  "💡 3D Shoulders चाहिए? Front, Side, Rear — तीनों train करो।"
     },
     "🫁 Chest": {
         "color": "#ec4899",
         "exercises": [
-            {"name": "Flat Bench Press",         "sets": "4×10", "tip": "Arch back slightly, feet flat"},
-            {"name": "Incline Dumbbell Press",   "sets": "3×12", "tip": "Upper chest के लिए best"},
-            {"name": "Cable Flyes",              "sets": "3×15", "tip": "Full stretch at bottom"},
-            {"name": "Push-Ups",                 "sets": "3×20", "tip": "Elbows 45°, chest to floor"},
-            {"name": "Decline Press",            "sets": "3×12", "tip": "Lower chest target"},
+            {"name": "Flat Bench Press",       "sets": "4×10", "tip": "Arch back slightly, feet flat"},
+            {"name": "Incline Dumbbell Press", "sets": "3×12", "tip": "Upper chest के लिए best"},
+            {"name": "Cable Flyes",            "sets": "3×15", "tip": "Full stretch at bottom"},
+            {"name": "Push-Ups",               "sets": "3×20", "tip": "Elbows 45°, chest to floor"},
+            {"name": "Decline Press",          "sets": "3×12", "tip": "Lower chest target"},
         ],
-        "video": "https://www.youtube.com/results?search_query=best+chest+workout+hindi",
-        "info": "💡 Big Chest = Compound movements first (Bench Press), then isolation (Flyes)।"
+        "video": "https://www.youtube.com/embed/SCVCLChPQFY",
+        "info":  "💡 Big Chest = Compound movements first (Bench Press), then isolation (Flyes)।"
     },
     "🦵 Legs": {
         "color": "#22c55e",
         "exercises": [
-            {"name": "Squats",               "sets": "4×12", "tip": "Knees over toes, deep squat लो"},
-            {"name": "Leg Press",            "sets": "4×15", "tip": "Full depth, knees don't cave in"},
-            {"name": "Romanian Deadlift",    "sets": "3×12", "tip": "Hamstring stretch feel करो"},
-            {"name": "Leg Extension",        "sets": "3×15", "tip": "Quad squeeze at top"},
-            {"name": "Calf Raises",          "sets": "4×20", "tip": "Slow negatives, full range"},
+            {"name": "Squats",            "sets": "4×12", "tip": "Knees over toes, deep squat लो"},
+            {"name": "Leg Press",         "sets": "4×15", "tip": "Full depth, knees don't cave in"},
+            {"name": "Romanian Deadlift", "sets": "3×12", "tip": "Hamstring stretch feel करो"},
+            {"name": "Leg Extension",     "sets": "3×15", "tip": "Quad squeeze at top"},
+            {"name": "Calf Raises",       "sets": "4×20", "tip": "Slow negatives, full range"},
         ],
-        "video": "https://www.youtube.com/results?search_query=best+leg+workout+hindi",
-        "info": "💡 Leg day skip मत करो! Body का 70% muscle legs में है।"
+        "video": "https://www.youtube.com/embed/aclHkVaku9U",
+        "info":  "💡 Leg day skip मत करो! Body का 70% muscle legs में है।"
     },
     "🏛️ Back": {
         "color": "#3b82f6",
         "exercises": [
-            {"name": "Deadlift",             "sets": "4×6",  "tip": "Back flat, hinge at hips"},
-            {"name": "Pull-Ups",             "sets": "3×10", "tip": "Full extension, chin over bar"},
-            {"name": "Barbell Row",          "sets": "4×10", "tip": "Elbows back, squeeze lats"},
-            {"name": "Lat Pulldown",         "sets": "3×12", "tip": "Chest up, lean back slightly"},
-            {"name": "Seated Cable Row",     "sets": "3×15", "tip": "Shoulder blades squeeze"},
+            {"name": "Deadlift",         "sets": "4×6",  "tip": "Back flat, hinge at hips"},
+            {"name": "Pull-Ups",         "sets": "3×10", "tip": "Full extension, chin over bar"},
+            {"name": "Barbell Row",      "sets": "4×10", "tip": "Elbows back, squeeze lats"},
+            {"name": "Lat Pulldown",     "sets": "3×12", "tip": "Chest up, lean back slightly"},
+            {"name": "Seated Cable Row", "sets": "3×15", "tip": "Shoulder blades squeeze"},
         ],
-        "video": "https://www.youtube.com/results?search_query=best+back+workout+hindi",
-        "info": "💡 V-taper चाहिए? Lat Pulldown + Pull-Ups = width, Rows = thickness।"
+        "video": "https://www.youtube.com/embed/1T089J5H5Dw",
+        "info":  "💡 V-taper चाहिए? Lat Pulldown + Pull-Ups = width, Rows = thickness।"
     },
     "🏃 Cardio": {
         "color": "#a855f7",
         "exercises": [
-            {"name": "Treadmill Run",        "sets": "20 min", "tip": "Incline 5-10% add करो"},
-            {"name": "Jump Rope",            "sets": "5×3 min","tip": "Wrist से jump करो"},
-            {"name": "Cycling",              "sets": "30 min", "tip": "Medium resistance"},
-            {"name": "HIIT Intervals",       "sets": "20 min", "tip": "30s max effort, 30s rest"},
-            {"name": "Stair Climber",        "sets": "15 min", "tip": "Don't hold rails"},
+            {"name": "Treadmill Run",  "sets": "20 min",  "tip": "Incline 5-10% add करो"},
+            {"name": "Jump Rope",      "sets": "5×3 min", "tip": "Wrist से jump करो"},
+            {"name": "Cycling",        "sets": "30 min",  "tip": "Medium resistance"},
+            {"name": "HIIT Intervals", "sets": "20 min",  "tip": "30s max effort, 30s rest"},
+            {"name": "Stair Climber",  "sets": "15 min",  "tip": "Don't hold rails"},
         ],
-        "video": "https://www.youtube.com/results?search_query=best+cardio+fat+loss+hindi",
-        "info": "💡 Fat loss के लिए HIIT > Steady cardio। Less time, more results।"
+        "video": "https://www.youtube.com/embed/ml6cT4AZdqI",
+        "info":  "💡 Fat loss के लिए HIIT > Steady cardio। Less time, more results।"
     },
     "🧘 Yoga": {
         "color": "#06b6d4",
         "exercises": [
-            {"name": "Sun Salutation",       "sets": "5 rounds", "tip": "Slow breathing"},
-            {"name": "Warrior Pose",         "sets": "Hold 30s", "tip": "Hip alignment"},
-            {"name": "Downward Dog",         "sets": "Hold 1 min","tip": "Heels push down"},
-            {"name": "Child's Pose",         "sets": "Hold 2 min","tip": "Forehead to floor"},
-            {"name": "Shavasana",            "sets": "5 min",    "tip": "Complete relaxation"},
+            {"name": "Sun Salutation", "sets": "5 rounds", "tip": "Slow breathing"},
+            {"name": "Warrior Pose",   "sets": "Hold 30s", "tip": "Hip alignment"},
+            {"name": "Downward Dog",   "sets": "Hold 1 min","tip": "Heels push down"},
+            {"name": "Child's Pose",   "sets": "Hold 2 min","tip": "Forehead to floor"},
+            {"name": "Shavasana",      "sets": "5 min",     "tip": "Complete relaxation"},
         ],
-        "video": "https://www.youtube.com/results?search_query=yoga+for+beginners+hindi",
-        "info": "💡 Yoga = Recovery + Flexibility + Mental Peace।"
+        "video": "https://www.youtube.com/embed/v7AYKMP6rOE",
+        "info":  "💡 Yoga = Recovery + Flexibility + Mental Peace।"
     },
 }
 
 # ─────────────────────────────────────────────
-# SESSION STATE
+# LOGIN SYSTEM
 # ─────────────────────────────────────────────
+USERS = {
+    "shadab": "1234",
+    "nikhat": "5678",
+    "admin":  "admin",
+}
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "user" not in st.session_state:
+    st.session_state.user = ""
+
+if not st.session_state.logged_in:
+    st.markdown("""
+    <div style='text-align:center;padding:60px 0 20px;'>
+        <div style='font-size:60px;'>⚡</div>
+        <div style='font-family:Exo 2,sans-serif;font-size:36px;font-weight:900;
+                    background:linear-gradient(135deg,#60a5fa,#a78bfa);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                    letter-spacing:3px;'>GYM AI</div>
+        <div style='color:#475569;font-size:14px;margin-top:6px;'>Smart Fitness Dashboard</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _, col, _ = st.columns([1, 1, 1])
+    with col:
+        st.markdown("""
+        <div style='background:#0d1117;border:1px solid #1e2d40;border-radius:20px;padding:30px;'>
+        """, unsafe_allow_html=True)
+        st.markdown("#### 🔐 Login करो")
+        username = st.text_input("👤 Username")
+        password = st.text_input("🔑 Password", type="password")
+        if st.button("🚀 Login करो", use_container_width=True):
+            if username.lower() in USERS and USERS[username.lower()] == password:
+                st.session_state.logged_in = True
+                st.session_state.user = username.capitalize()
+                st.success(f"Welcome {username.capitalize()}! 💪")
+                st.rerun()
+            else:
+                st.error("❌ Wrong username या password!")
+        st.caption("🧪 Demo: shadab / 1234  |  nikhat / 5678")
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
+
+# ─────────────────────────────────────────────
+# SESSION STATE DEFAULTS
+# ─────────────────────────────────────────────
+days_hindi = {
+    "Mon": "सोम", "Tue": "मंगल", "Wed": "बुध", "Thu": "गुरु",
+    "Fri": "शुक्र", "Sat": "शनि", "Sun": "रवि"
+}
+
 defaults = {
-    "checked": {},
-    "workout_log": [],
-    "streak": 0,
-    "weekly": {},
+    "checked":      {},
+    "workout_log":  [],
+    "streak":       0,
+    "weekly":       {d: False for d in days_hindi},
+    "last_workout": "",
+    "start_time":   None,
+    "elapsed":      0,
+    "rest_timer":   0,
+    "body_weight":  70.0,
+    "goal_weight":  65.0,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-days_hindi = {
-    "Mon": "सोम", "Tue": "मंगल", "Wed": "बुध", "Thu": "गुरु",
-    "Fri": "शुक्र", "Sat": "शनि", "Sun": "रवि"
-}
-if not st.session_state.weekly:
-    st.session_state.weekly = {d: False for d in days_hindi}
-
-# ─────────────────────────────────────────────
-# GOOGLE SHEETS
-# Sheet name: "Gym Workout Log"
-# Headers:    Date | Time | Body Part | Exercise | Weight (kg) | Status
-# ─────────────────────────────────────────────
-# ─── Google Sheet — बाद में add होगा ───
-def get_sheet():
-    return None  # Sheet जोड़ने पर यहाँ code आएगा
-
-def save_to_sheet(date_str, time_str, body_part, exercise, weight=0):
-    return False  # Sheet जोड़ने पर activate होगा
-
-def sheet_status():
-    return False  # Sheet जोड़ने पर True होगा
+load_data()
 
 # ─────────────────────────────────────────────
 # SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
-    <div style='text-align:center; padding:10px 0 20px;'>
-        <div style='font-size:40px'>⚡</div>
-        <div style='font-family:Exo 2,sans-serif; font-size:22px; font-weight:900;
-                    background:linear-gradient(135deg,#60a5fa,#a78bfa);
-                    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-                    letter-spacing:2px;'>GYM AI</div>
-        <div style='color:#475569; font-size:11px; margin-top:4px;'>Smart Fitness Dashboard</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Google Sheet Status
-    connected = sheet_status()
-    dot_color = "#22c55e" if connected else "#ef4444"
-    dot_text  = "Sheet Connected ✅" if connected else "Sheet Not Connected ❌"
     st.markdown(f"""
-    <div style='background:#0d1117; border:1px solid #1e2d40; border-radius:10px;
-                padding:8px 12px; margin-bottom:12px; font-size:12px;
-                display:flex; align-items:center; gap:8px;'>
-        <span style='color:{dot_color}; font-size:16px;'>●</span>
-        <span style='color:{dot_color};'>{dot_text}</span>
+    <div style='text-align:center;padding:10px 0 20px;'>
+        <div style='font-size:38px;'>⚡</div>
+        <div style='font-family:Exo 2,sans-serif;font-size:20px;font-weight:900;
+                    background:linear-gradient(135deg,#60a5fa,#a78bfa);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                    letter-spacing:2px;'>GYM AI</div>
+        <div style='color:#60a5fa;font-size:12px;margin-top:4px;'>👤 {st.session_state.user}</div>
+        <div style='color:#475569;font-size:10px;'>Smart Fitness Dashboard</div>
     </div>
     """, unsafe_allow_html=True)
 
+    # Logout
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.logged_in = False
+        st.session_state.user = ""
+        st.rerun()
+
+    st.markdown("---")
     st.markdown("### 🏋️ Workout Menu")
     menu = st.radio("Select", list(MUSCLE_DATA.keys()), label_visibility="collapsed")
 
     st.markdown("---")
-
     total_done = sum(1 for v in st.session_state.checked.values() if v)
     c1, c2 = st.columns(2)
     with c1: st.metric("🔥 Streak", f"{st.session_state.streak}d")
     with c2: st.metric("✅ Done",   str(total_done))
 
     st.markdown("---")
-    st.markdown("**📊 सभी Groups**")
+    st.markdown("**📊 All Groups**")
     for grp, data in MUSCLE_DATA.items():
-        d   = sum(1 for ex in data["exercises"]
-                  if st.session_state.checked.get(f"{grp}_{ex['name']}", False))
-        t   = len(data["exercises"])
-        p   = int((d / t) * 100)
+        d = sum(1 for ex in data["exercises"]
+                if st.session_state.checked.get(f"{grp}_{ex['name']}", False))
+        t = len(data["exercises"])
+        p = int((d / t) * 100)
         clr = data["color"]
         st.markdown(f"""
-        <div style='margin-bottom:8px'>
-            <div style='display:flex; justify-content:space-between;
-                        font-size:12px; color:#94a3b8; margin-bottom:3px;'>
+        <div style='margin-bottom:7px;'>
+            <div style='display:flex;justify-content:space-between;
+                        font-size:11px;color:#94a3b8;margin-bottom:3px;'>
                 <span>{grp}</span>
-                <span style='color:{clr}; font-weight:700'>{p}%</span>
+                <span style='color:{clr};font-weight:700;'>{p}%</span>
             </div>
-            <div style='background:#1e2d40; border-radius:99px; height:5px;'>
-                <div style='width:{p}%; height:100%; background:{clr}; border-radius:99px;'></div>
+            <div style='background:#1e2d40;border-radius:99px;height:4px;'>
+                <div style='width:{p}%;height:100%;background:{clr};
+                            border-radius:99px;transition:width 0.5s ease;'></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
+    if st.session_state.workout_log:
+        csv_all = pd.DataFrame(st.session_state.workout_log).to_csv(index=False).encode("utf-8")
+        st.download_button("⬇️ Download CSV", data=csv_all,
+                           file_name=f"gym_{date.today()}.csv",
+                           mime="text/csv", use_container_width=True)
     st.markdown("""
-    <div style='color:#475569; font-size:11px; text-align:center;'>
-        Made with ❤️ for Fitness<br>by Shadab
+    <div style='color:#475569;font-size:10px;text-align:center;margin-top:10px;'>
+        Made with ❤️ for Fitness
     </div>
     """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # MAIN HEADER
 # ─────────────────────────────────────────────
-muscle     = MUSCLE_DATA[menu]
-color      = muscle["color"]
-exercises  = muscle["exercises"]
+muscle    = MUSCLE_DATA[menu]
+color     = muscle["color"]
+exercises = muscle["exercises"]
 
 done_count  = sum(1 for ex in exercises
                   if st.session_state.checked.get(f"{menu}_{ex['name']}", False))
@@ -296,31 +459,32 @@ total_count = len(exercises)
 pct         = int((done_count / total_count) * 100)
 
 st.markdown(f"""
-<div style='padding:20px 0 10px;'>
-    <h1 style='margin:0; font-size:36px; font-weight:900;
+<div style='padding:20px 0 8px;'>
+    <h1 style='margin:0;font-size:34px;font-weight:900;
                background:linear-gradient(135deg,{color},{color}88);
-               -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-               font-family:Exo 2,sans-serif; letter-spacing:2px;'>
+               -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+               font-family:Exo 2,sans-serif;letter-spacing:2px;'>
         {menu.upper()} WORKOUT
     </h1>
-    <p style='color:#64748b; margin:4px 0 0; font-size:14px;'>
+    <p style='color:#64748b;margin:4px 0 0;font-size:14px;'>
         {date.today().strftime("%A, %d %B %Y")}
         &nbsp;|&nbsp; {done_count}/{total_count} exercises complete
+        &nbsp;|&nbsp; 👤 {st.session_state.user}
     </p>
 </div>
 """, unsafe_allow_html=True)
 
-# Progress Bar
 st.markdown(f"""
-<div style='margin-bottom:20px;'>
-    <div style='display:flex; justify-content:space-between; margin-bottom:6px;'>
-        <span style='color:#94a3b8; font-size:13px;'>आज की Progress</span>
-        <span style='color:{color}; font-weight:700; font-size:13px;'>{pct}% Complete</span>
+<div style='margin-bottom:16px;'>
+    <div style='display:flex;justify-content:space-between;
+                font-size:13px;color:#94a3b8;margin-bottom:6px;'>
+        <span>आज की Progress</span>
+        <span style='color:{color};font-weight:700;'>{pct}% Complete</span>
     </div>
-    <div style='background:#1e2d40; border-radius:99px; height:10px; overflow:hidden;'>
-        <div style='width:{pct}%; height:100%;
-                    background:linear-gradient(90deg,{color},{color}99);
-                    border-radius:99px; box-shadow:0 0 10px {color}66;'></div>
+    <div style='background:#1e2d40;border-radius:99px;height:10px;overflow:hidden;'>
+        <div class='progress-fill' style='width:{pct}%;height:100%;
+             background:linear-gradient(90deg,{color},{color}99);
+             border-radius:99px;box-shadow:0 0 10px {color}66;'></div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -328,9 +492,9 @@ st.markdown(f"""
 st.info(muscle["info"])
 
 # ─────────────────────────────────────────────
-# TABS — 2 tabs only (AI हटाया)
+# TABS
 # ─────────────────────────────────────────────
-tab1, tab2 = st.tabs(["🏋️ Workout", "📊 Log & Stats"])
+tab1, tab2, tab3 = st.tabs(["🏋️ Workout", "📊 Log & Stats", "🤖 AI Coach"])
 
 # ══════════════════════════════════════════
 # TAB 1 — WORKOUT
@@ -338,9 +502,10 @@ tab1, tab2 = st.tabs(["🏋️ Workout", "📊 Log & Stats"])
 with tab1:
     col_ex, col_right = st.columns([3, 2])
 
+    # ── Exercise List ──
     with col_ex:
         st.markdown("### Exercise List")
-        st.caption("⚖️ पहले weight डालो → फिर ✅ tick करो → Google Sheet में save होगा")
+        st.caption("⚖️ पहले weight डालो → फिर ✅ tick करो")
 
         for ex in exercises:
             key     = f"{menu}_{ex['name']}"
@@ -354,56 +519,53 @@ with tab1:
 
             with col_chk:
                 checked = st.checkbox("", value=is_done, key=f"cb_{key}")
+
                 if checked != is_done:
-    wt_val = st.session_state.get(f"wt_{key}", 0.0)
+                    wt_val = st.session_state.get(f"wt_{key}", 0.0)
 
-    if checked and wt_val == 0:
-        st.warning("⚠️ पहले weight डालो!")
-        st.stop()
+                    if checked and wt_val == 0:
+                        st.warning("⚠️ पहले weight डालो!")
+                    else:
+                        st.session_state.checked[key] = checked
+                        if checked:
+                            now   = datetime.now()
+                            today = now.strftime("%d-%m-%Y")
 
-    st.session_state.checked[key] = checked
+                            # Auto streak
+                            if st.session_state.last_workout != today:
+                                st.session_state.streak += 1
+                                st.session_state.last_workout = today
 
-    if checked:
-        now = datetime.now()
-        today = now.strftime("%d-%m-%Y")
+                            # Weekly auto update
+                            today_day = now.strftime("%a")
+                            if today_day in st.session_state.weekly:
+                                st.session_state.weekly[today_day] = True
 
-        # 🔥 AUTO STREAK
-        if st.session_state.last_workout != today:
-            st.session_state.streak += 1
-            st.session_state.last_workout = today
+                            entry = {
+                                "Date":        today,
+                                "Time":        now.strftime("%I:%M %p"),
+                                "User":        st.session_state.user,
+                                "Body Part":   menu.split(" ", 1)[1] if " " in menu else menu,
+                                "Exercise":    ex["name"],
+                                "Weight (kg)": wt_val,
+                                "Status":      "✔ Done"
+                            }
+                            st.session_state.workout_log.insert(0, entry)
 
-        # 📅 WEEKLY AUTO UPDATE
-        today_day = now.strftime("%a")
-        if today_day in st.session_state.weekly:
-            st.session_state.weekly[today_day] = True
+                            # Auto rest timer
+                            st.session_state.rest_timer = 60
 
-        entry = {
-            "Date": today,
-            "Time": now.strftime("%I:%M %p"),
-            "Body Part": menu.split(" ", 1)[1] if " " in menu else menu,
-            "Exercise": ex["name"],
-            "Weight (kg)": wt_val,
-            "Status": "✔ Done"
-        }
-
-        st.session_state.workout_log.insert(0, entry)
-                        saved = save_to_sheet(
-                            entry["Date"], entry["Time"],
-                            entry["Body Part"], entry["Exercise"], wt_val
-                        )
-                        if saved:
-                            st.toast(f"✅ {ex['name']} — {wt_val} kg → Sheet saved!", icon="💪")
-                        else:
-                            st.toast(f"✅ {ex['name']} logged! (Sheet offline)", icon="⚠️")
-                    st.rerun()
+                            save_data()
+                            st.toast(f"✅ {ex['name']} logged! 💪", icon="🔥")
+                        st.rerun()
 
             with col_inf:
                 st.markdown(f"""
-                <div style='padding:8px 12px; border-radius:10px;
-                            background:{bg}; border:1px solid {border};'>
-                    <div style='font-size:15px; font-weight:700;
-                                color:{nc}; text-decoration:{strike};'>{ex["name"]}</div>
-                    <div style='font-size:12px; color:#64748b; margin-top:2px;'>
+                <div style='padding:8px 12px;border-radius:10px;
+                            background:{bg};border:1px solid {border};'>
+                    <div style='font-size:15px;font-weight:700;
+                                color:{nc};text-decoration:{strike};'>{ex["name"]}</div>
+                    <div style='font-size:12px;color:#64748b;margin-top:2px;'>
                         💡 {ex["tip"]}
                     </div>
                 </div>
@@ -411,89 +573,221 @@ with tab1:
 
             with col_set:
                 st.markdown(f"""
-                <div style='padding:8px; text-align:center; border-radius:10px;
-                            background:{color}22; border:1px solid {color}44;
-                            color:{color}; font-weight:700; font-size:13px; margin-top:2px;'>
+                <div style='padding:8px;text-align:center;border-radius:10px;
+                            background:{color}22;border:1px solid {color}44;
+                            color:{color};font-weight:700;font-size:13px;margin-top:2px;'>
                     {ex["sets"]}
                 </div>
                 """, unsafe_allow_html=True)
 
             with col_wt:
-                st.number_input(
-                    "⚖️ kg", min_value=0.0, max_value=300.0,
-                    step=0.5, value=0.0,
-                    key=f"wt_{key}",
-                    label_visibility="visible"
-                )
+                st.number_input("⚖️ kg", min_value=0.0, max_value=300.0,
+                                step=0.5, value=0.0,
+                                key=f"wt_{key}", label_visibility="visible")
 
             st.markdown("")
 
         st.markdown("---")
 
-        # YouTube Button
+        # YouTube Embed
+        st.markdown("### 🎥 Video Guide")
         st.markdown(f"""
-        <a href="{muscle['video']}" target="_blank" style="text-decoration:none;">
-            <div style='background:linear-gradient(135deg,#cc0000,#ff0000);
-                        color:white; padding:14px; border-radius:12px;
-                        text-align:center; font-size:16px; font-weight:700;
-                        font-family:Rajdhani,sans-serif;
-                        box-shadow:0 4px 20px #ff000044;'>
-                🎥 YouTube पर {menu} Workout देखो →
-            </div>
-        </a>
+        <div style='border-radius:14px;overflow:hidden;border:1px solid #1e2d40;'>
+        <iframe width="100%" height="220"
+            src="{muscle['video']}"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+        </iframe>
+        </div>
         """, unsafe_allow_html=True)
 
-    # ── Right Column ──
+    # ── RIGHT COLUMN ──
     with col_right:
-        # Weekly Tracker
+
+        # ── STOPWATCH ──
+        st.markdown("### ⏱️ Stopwatch")
+
+        if st.session_state.start_time:
+            total_t = int(st.session_state.elapsed +
+                          (time.time() - st.session_state.start_time))
+        else:
+            total_t = int(st.session_state.elapsed)
+
+        mins_t = total_t // 60
+        secs_t = total_t % 60
+
+        st.markdown(f"""
+        <div class='glass' style='text-align:center;padding:20px;'>
+            <div style='font-size:42px;font-weight:900;color:#e2e8f0;
+                        font-family:Exo 2,sans-serif;letter-spacing:3px;'>
+                {mins_t:02}:{secs_t:02}
+            </div>
+            <div style='color:#64748b;font-size:12px;margin-top:4px;'>Workout Time</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        sw1, sw2, sw3 = st.columns(3)
+        with sw1:
+            if st.button("▶️ Start", use_container_width=True):
+                if not st.session_state.start_time:
+                    st.session_state.start_time = time.time()
+                st.rerun()
+        with sw2:
+            if st.button("⏸ Pause", use_container_width=True):
+                if st.session_state.start_time:
+                    st.session_state.elapsed += time.time() - st.session_state.start_time
+                    st.session_state.start_time = None
+                st.rerun()
+        with sw3:
+            if st.button("🔴 Reset", use_container_width=True):
+                st.session_state.start_time = None
+                st.session_state.elapsed = 0
+                st.rerun()
+
+        st.markdown("---")
+
+        # ── REST TIMER ──
+        st.markdown("### 💤 Rest Timer")
+
+        rest_val = st.session_state.rest_timer
+        rest_clr = "#22c55e" if rest_val > 30 else ("#f97316" if rest_val > 0 else "#475569")
+
+        st.markdown(f"""
+        <div class='glass' style='text-align:center;padding:18px;'>
+            <div style='font-size:36px;font-weight:900;color:{rest_clr};
+                        font-family:Exo 2,sans-serif;letter-spacing:2px;'>
+                {rest_val:02}s
+            </div>
+            <div style='color:#64748b;font-size:12px;margin-top:4px;'>Rest Time</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        r1, r2, r3 = st.columns(3)
+        with r1:
+            if st.button("30s", use_container_width=True):
+                st.session_state.rest_timer = 30; st.rerun()
+        with r2:
+            if st.button("60s", use_container_width=True):
+                st.session_state.rest_timer = 60; st.rerun()
+        with r3:
+            if st.button("90s", use_container_width=True):
+                st.session_state.rest_timer = 90; st.rerun()
+
+        if rest_val > 0:
+            if st.button("⏹ Stop Rest", use_container_width=True):
+                st.session_state.rest_timer = 0; st.rerun()
+
+        st.markdown("---")
+
+        # ── WEEKLY TRACKER ──
         st.markdown("### 📅 इस हफ्ते")
         cols7 = st.columns(7)
         for i, (day, hindi) in enumerate(days_hindi.items()):
             with cols7[i]:
-                val    = st.session_state.weekly[day]
+                val    = st.session_state.weekly.get(day, False)
                 bg_day = color  if val else "#1e2d40"
                 tc     = "#000" if val else "#64748b"
                 st.markdown(f"""
-                <div style='background:{bg_day}; border-radius:8px; padding:8px 2px;
+                <div style='background:{bg_day};border-radius:8px;padding:6px 2px;
                             text-align:center;
                             box-shadow:{"0 0 8px "+color+"66" if val else "none"};'>
-                    <div style='font-size:10px; font-weight:700; color:{tc};'>{hindi}</div>
-                    <div style='font-size:14px;'>{"✓" if val else "·"}</div>
+                    <div style='font-size:9px;font-weight:700;color:{tc};'>{hindi}</div>
+                    <div style='font-size:13px;'>{"✓" if val else "·"}</div>
                 </div>
                 """, unsafe_allow_html=True)
                 if st.button("", key=f"day_{day}", help=day):
                     st.session_state.weekly[day] = not val
-                    st.rerun()
+                    save_data(); st.rerun()
 
         gym_days = sum(1 for v in st.session_state.weekly.values() if v)
-        st.markdown(
-            f"<div style='text-align:center;margin:10px 0;color:{color};font-weight:700;'>"
-            f"{gym_days}/7 दिन Gym 🏆</div>",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"""
+        <div style='text-align:center;margin:8px 0;color:{color};font-weight:700;font-size:14px;'>
+            {gym_days}/7 दिन Gym 🏆
+        </div>
+        """, unsafe_allow_html=True)
+
         st.markdown("---")
 
-        # Quick Stats
+        # ── QUICK STATS ──
         st.markdown("### 📈 Quick Stats")
         today_str = date.today().strftime("%d-%m-%Y")
         s1, s2 = st.columns(2)
-        with s1: st.metric("आज", f"{done_count}/{total_count}")
-        with s2: st.metric("Today Log",
-                            len([l for l in st.session_state.workout_log
-                                 if l["Date"] == today_str]))
+        with s1: st.metric("आज",       f"{done_count}/{total_count}")
+        with s2: st.metric("Today Log", len([l for l in st.session_state.workout_log
+                                              if l["Date"] == today_str]))
         s3, s4 = st.columns(2)
         with s3: st.metric("🔥 Streak", f"{st.session_state.streak}d")
         with s4: st.metric("📝 Total",  len(st.session_state.workout_log))
 
         st.markdown("---")
 
-        # Streak Update
-        st.markdown("### 🔥 Streak Update")
-        ns = st.number_input("Streak days:", min_value=0, max_value=365,
-                             value=st.session_state.streak, step=1)
-        if st.button("🔥 Save करो"):
-            st.session_state.streak = ns
-            st.success(f"Streak: {ns} days! 🔥")
+        # ── BODY STATS ──
+        st.markdown("### ⚖️ Body Stats")
+        bw = st.number_input("वजन (kg):", min_value=30.0, max_value=200.0,
+                             value=float(st.session_state.body_weight), step=0.5,
+                             key="bw_input")
+        gw = st.number_input("Goal (kg):", min_value=30.0, max_value=200.0,
+                             value=float(st.session_state.goal_weight), step=0.5,
+                             key="gw_input")
+        if st.button("💾 Save Stats", use_container_width=True):
+            st.session_state.body_weight = bw
+            st.session_state.goal_weight = gw
+            save_data()
+            st.success("✅ Saved!")
+
+        if bw > 0:
+            bmi     = bw / (1.70 ** 2)
+            bmi_cat = ("Underweight" if bmi < 18.5
+                       else "Normal" if bmi < 25
+                       else "Overweight" if bmi < 30
+                       else "Obese")
+            bmi_clr = ("#22c55e" if bmi_cat == "Normal"
+                       else "#f97316" if bmi_cat == "Overweight"
+                       else "#ef4444" if bmi_cat == "Obese"
+                       else "#60a5fa")
+            diff = abs(bw - gw)
+            prog = max(0, min(100, int((1 - diff / max(bw, gw)) * 100)))
+            st.markdown(f"""
+            <div class='glass'>
+                <div style='font-size:13px;color:#94a3b8;'>
+                    BMI: <b style='color:{bmi_clr};'>{bmi:.1f} ({bmi_cat})</b>
+                </div>
+                <div style='font-size:13px;color:#94a3b8;margin-top:4px;'>
+                    Goal: <b style='color:#22c55e;'>{gw} kg</b>
+                    &nbsp;|&nbsp; बचा: <b style='color:#ef4444;'>{diff:.1f} kg</b>
+                </div>
+                <div style='background:#1e2d40;border-radius:99px;height:6px;margin-top:10px;'>
+                    <div style='width:{prog}%;height:100%;background:#22c55e;
+                                border-radius:99px;transition:width 0.5s;'></div>
+                </div>
+                <div style='font-size:11px;color:#475569;margin-top:4px;'>
+                    Goal Progress: {prog}%
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # ── GYM MUSIC ──
+        st.markdown("### 🎧 Gym Music")
+        music_choice = st.selectbox("Select:", ["Off", "🔥 Motivation", "💪 Hard Mix", "🎧 EDM"],
+                                    key="music_sel")
+        music_urls = {
+            "🔥 Motivation": "https://www.youtube.com/embed/U3ASj1L6_sY",
+            "💪 Hard Mix":   "https://www.youtube.com/embed/2Vv-BfVoq4g",
+            "🎧 EDM":        "https://www.youtube.com/embed/fLexgOxsZu0",
+        }
+        if music_choice in music_urls:
+            st.markdown(f"""
+            <div style='border-radius:12px;overflow:hidden;margin-top:6px;
+                        border:1px solid #1e2d40;'>
+            <iframe width="100%" height="120"
+                src="{music_urls[music_choice]}"
+                frameborder="0" allowfullscreen>
+            </iframe>
+            </div>
+            """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
 # TAB 2 — LOG & STATS
@@ -501,76 +795,239 @@ with tab1:
 with tab2:
     st.markdown("### 📊 Workout Statistics")
 
-    total_ex    = sum(1 for v in st.session_state.checked.values() if v)
     total_log   = len(st.session_state.workout_log)
+    today_log_c = len([l for l in st.session_state.workout_log
+                        if l["Date"] == date.today().strftime("%d-%m-%Y")])
     groups_done = len(set(l["Body Part"] for l in st.session_state.workout_log))
-    today_log   = len([l for l in st.session_state.workout_log
-                       if l["Date"] == date.today().strftime("%d-%m-%Y")])
 
     c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("💪 Total Done",  total_ex)
+    with c1: st.metric("💪 Total Done",  total_done)
     with c2: st.metric("📝 Log Entries", total_log)
     with c3: st.metric("🏋️ Groups",     groups_done)
-    with c4: st.metric("📅 आज",         today_log)
-
-    st.markdown("---")
-    st.markdown("### 📋 Workout Log")
+    with c4: st.metric("📅 आज",         today_log_c)
 
     if st.session_state.workout_log:
         df = pd.DataFrame(st.session_state.workout_log)
 
-        st.dataframe(
-            df, use_container_width=True, hide_index=True,
-            column_config={
-                "Date":        st.column_config.TextColumn("📅 Date",        width="small"),
-                "Time":        st.column_config.TextColumn("⏰ Time",        width="small"),
-                "Body Part":   st.column_config.TextColumn("💪 Body Part",   width="medium"),
-                "Exercise":    st.column_config.TextColumn("🏋️ Exercise",   width="large"),
-                "Weight (kg)": st.column_config.NumberColumn("⚖️ Weight kg", width="small"),
-                "Status":      st.column_config.TextColumn("✅ Status",      width="small"),
-            }
-        )
+        st.markdown("---")
+        st.markdown("### 📋 Recent Workout Log")
 
-        cd, cl = st.columns([3, 1])
-        with cd:
-            csv = df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                "⬇️ CSV Download करो", data=csv,
-                file_name=f"gym_log_{date.today().strftime('%d_%m_%Y')}.csv",
-                mime="text/csv", use_container_width=True
-            )
-        with cl:
-            if st.button("🗑️ Clear Log", use_container_width=True):
-                st.session_state.workout_log = []
-                st.rerun()
+        for row in st.session_state.workout_log[:5]:
+            st.markdown(f"""
+            <div class='glass' style='display:flex;align-items:center;gap:12px;'>
+                <span style='color:#64748b;font-size:12px;min-width:80px;'>📅 {row['Date']}</span>
+                <span style='color:#e2e8f0;font-weight:700;flex:1;'>{row['Exercise']}</span>
+                <span style='color:{color};font-weight:700;'>⚖️ {row['Weight (kg)']} kg</span>
+                <span style='color:#22c55e;font-size:13px;'>✅</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with st.expander("📋 Full Log Table देखो"):
+            st.dataframe(df, use_container_width=True, hide_index=True,
+                         column_config={
+                             "Date":        st.column_config.TextColumn("📅 Date",    width="small"),
+                             "Time":        st.column_config.TextColumn("⏰ Time",    width="small"),
+                             "User":        st.column_config.TextColumn("👤 User",    width="small"),
+                             "Body Part":   st.column_config.TextColumn("💪 Part",    width="medium"),
+                             "Exercise":    st.column_config.TextColumn("🏋️ Exercise",width="large"),
+                             "Weight (kg)": st.column_config.NumberColumn("⚖️ kg",    width="small"),
+                             "Status":      st.column_config.TextColumn("✅ Status",  width="small"),
+                         })
 
         st.markdown("---")
 
-        # Body Part Breakdown
+        # ── Advanced Analytics ──
+        st.markdown("### 🔥 Advanced Analytics")
+        avg_wt      = df["Weight (kg)"].mean()
+        top_part    = df["Body Part"].value_counts().idxmax()
+        days_worked = len(set(df["Date"]))
+        consistency = min(int((days_worked / 7) * 100), 100)
+        cardio_cnt  = len(df[df["Body Part"] == "Cardio"])
+        fat_score   = min(cardio_cnt * 10, 100)
+
+        a1, a2, a3 = st.columns(3)
+        with a1: st.metric("⚖️ Avg Weight",  f"{avg_wt:.1f} kg")
+        with a2: st.metric("🏆 Top Focus",   top_part)
+        with a3: st.metric("📅 Consistency", f"{consistency}%")
+
+        st.markdown(f"""
+        <div style='margin:12px 0 4px;font-size:13px;color:#94a3b8;'>
+            🔥 Fat Loss Score: <b style='color:#ef4444;'>{fat_score}/100</b>
+        </div>
+        <div style='background:#1e2d40;border-radius:99px;height:8px;'>
+            <div style='width:{fat_score}%;height:100%;background:linear-gradient(90deg,#f97316,#ef4444);
+                        border-radius:99px;transition:width 0.5s;'></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # ── Body Part Breakdown ──
         st.markdown("### 📊 Body Part Breakdown")
         bd = df["Body Part"].value_counts().reset_index()
         bd.columns = ["Body Part", "Count"]
         st.bar_chart(bd.set_index("Body Part"))
 
-        # Weight Progress
+        # ── Weight Progress ──
         st.markdown("### ⚖️ Weight Progress")
-        if "Weight (kg)" in df.columns:
-            ex_opts = df[df["Weight (kg)"] > 0]["Exercise"].unique().tolist()
-            if ex_opts:
-                sel   = st.selectbox("Exercise select करो:", ex_opts)
-                ex_df = df[df["Exercise"] == sel][["Date", "Weight (kg)"]].copy()
-                ex_df = ex_df[ex_df["Weight (kg)"] > 0]
-                if not ex_df.empty:
-                    st.line_chart(ex_df.set_index("Date"))
-            else:
-                st.info("पहले कुछ exercises में weight डालो — chart यहाँ दिखेगा।")
+        ex_opts = df[df["Weight (kg)"] > 0]["Exercise"].unique().tolist()
+        if ex_opts:
+            sel   = st.selectbox("Exercise चुनो:", ex_opts)
+            ex_df = df[df["Exercise"] == sel][["Date", "Weight (kg)"]].copy()
+            ex_df = ex_df[ex_df["Weight (kg)"] > 0].copy()
+            ex_df["Date"] = pd.to_datetime(ex_df["Date"], dayfirst=True)
+            ex_df = ex_df.sort_values("Date")
+            if not ex_df.empty:
+                st.line_chart(ex_df.set_index("Date"))
+
+                # Weight Prediction
+                weights = ex_df["Weight (kg)"].values
+                if len(weights) >= 3:
+                    trend  = weights[-1] - weights[0]
+                    future = weights[-1] + (trend / len(weights)) * 7
+                    st.info(f"🔮 अगले 7 दिन में अनुमानित weight: **{future:.1f} kg**")
+        else:
+            st.info("पहले exercises में weight डालो — chart यहाँ दिखेगा।")
+
+        st.markdown("---")
+        cd, cl = st.columns([3, 1])
+        with cd:
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ CSV Download करो", data=csv,
+                               file_name=f"gym_log_{date.today()}.csv",
+                               mime="text/csv", use_container_width=True)
+        with cl:
+            if st.button("🗑️ Clear Log", use_container_width=True):
+                st.session_state.workout_log = []
+                save_data(); st.rerun()
     else:
         st.markdown("""
-        <div style='text-align:center; padding:60px; color:#334155;'>
+        <div style='text-align:center;padding:60px;color:#334155;'>
             <div style='font-size:48px;'>📋</div>
-            <div style='font-size:18px; margin-top:12px;'>अभी कोई log नहीं है</div>
-            <div style='font-size:13px; color:#1e2d40; margin-top:6px;'>
-                Workout tab → exercises tick करो
+            <div style='font-size:18px;margin-top:12px;color:#475569;'>
+                अभी कोई log नहीं है
+            </div>
+            <div style='font-size:13px;color:#1e2d40;margin-top:6px;'>
+                Workout tab → exercises tick करो 💪
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════
+# TAB 3 — AI COACH
+# ══════════════════════════════════════════
+with tab3:
+    st.markdown("### 🤖 AI Gym Coach")
+
+    if not AI_ENABLED:
+        st.warning("⚠️ AI enable करने के लिए Streamlit Secrets में GROQ_API_KEY add करो।")
+        st.markdown("""
+        <div class='glass'>
+            <b>Steps:</b><br>
+            1. 👉 <a href='https://console.groq.com' target='_blank' style='color:#60a5fa;'>
+               console.groq.com</a> पर जाओ → Free API key लो<br>
+            2. Streamlit Cloud → App Settings → Secrets<br>
+            3. यह add करो:<br>
+            <code style='color:#60a5fa;'>GROQ_API_KEY = "your_key_here"</code>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Smart suggestion
+        if st.session_state.workout_log:
+            last_bp = st.session_state.workout_log[0]["Body Part"]
+            suggestions = {
+                "Chest":   "👉 आज Back + Biceps करो",
+                "Back":    "👉 आज Chest + Triceps करो",
+                "Legs":    "👉 आज Shoulders + Cardio करो",
+                "Biceps":  "👉 आज Triceps + Chest करो",
+                "Triceps": "👉 आज Back + Biceps करो",
+                "Shoulder":"👉 आज Legs करो 🦵",
+                "Cardio":  "👉 आज Strength training करो 💪",
+            }
+            sugg = suggestions.get(last_bp, "👉 आज Full Body करो 🔥")
+            st.markdown(f"""
+            <div class='glass'>
+                🧠 <b>Smart Suggestion:</b> आखिरी workout था
+                <b style='color:#60a5fa;'>{last_bp}</b><br>
+                <span style='color:#22c55e;font-weight:700;'>{sugg}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("#### ⚡ Quick Ask")
+    q1, q2 = st.columns(2)
+    with q1:
+        if st.button("💪 Next Workout Plan", use_container_width=True):
+            with st.spinner("AI सोच रहा है..."):
+                ans = ask_ai("Next workout plan बनाओ — कल क्या करूँ?",
+                             st.session_state.workout_log)
+            st.success(ans)
+
+        if st.button("🔥 Fat Loss Tips", use_container_width=True):
+            with st.spinner("AI सोच रहा है..."):
+                ans = ask_ai("Fat loss के लिए best tips दो।",
+                             st.session_state.workout_log)
+            st.success(ans)
+
+    with q2:
+        if st.button("📈 Strength बढ़ाओ", use_container_width=True):
+            with st.spinner("AI सोच रहा है..."):
+                ans = ask_ai("Strength और muscle कैसे बढ़ाऊ?",
+                             st.session_state.workout_log)
+            st.success(ans)
+
+        if st.button("🥗 Diet Plan", use_container_width=True):
+            with st.spinner("AI सोच रहा है..."):
+                ans = ask_ai("Simple Indian diet plan दो gym के लिए।",
+                             st.session_state.workout_log)
+            st.success(ans)
+
+    st.markdown("---")
+    st.markdown("#### 💬 Custom Question पूछो")
+    q = st.text_input("आज क्या पूछना है? (Hindi या English)")
+    if st.button("🚀 Ask AI Coach", use_container_width=True):
+        if q:
+            with st.spinner("AI सोच रहा है..."):
+                answer = ask_ai(q, st.session_state.workout_log)
+            st.success(answer)
+        else:
+            st.warning("पहले question लिखो!")
+
+    st.markdown("---")
+    st.markdown("#### 📅 30-Day Smart Plan")
+    if st.button("📅 Generate 30-Day Plan", use_container_width=True):
+        if AI_ENABLED:
+            with st.spinner("AI plan बना रहा है..."):
+                plan = ask_ai(
+                    "Mujhe ek 30-day gym workout plan do with weekly split, sets, reps aur diet tips. "
+                    "Hindi + English mix mein. Short aur clear.",
+                    st.session_state.workout_log
+                )
+            st.success(plan)
+        else:
+            st.markdown("""
+            **📅 30-Day Smart Plan:**
+
+            **Week 1-2 (Foundation):**
+            - Mon: Chest + Triceps
+            - Tue: Back + Biceps
+            - Wed: Cardio / HIIT
+            - Thu: Shoulders
+            - Fri: Legs
+            - Sat: Yoga / Rest
+            - Sun: Rest
+
+            **Week 3-4 (Progressive Overload):**
+            - हर exercise में 5% weight बढ़ाओ
+            - Protein: 1.6g per kg body weight
+            - नींद: 7-8 घंटे
+
+            🔥 **Key Rules:**
+            - Compound moves first (Squat, Deadlift, Bench)
+            - Hydration: 3L water daily
+            - Recovery उतना ही important है
+            """)
+
+# ── Floating Button ──
+st.markdown("""
+<div class='fab'>💪</div>
+""", unsafe_allow_html=True)
