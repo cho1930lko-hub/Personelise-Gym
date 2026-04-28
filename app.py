@@ -211,148 +211,180 @@ def load_data():
 MUSCLE_DATA = {
     "💪 Biceps": {
         "color": "#ef4444",
+       "exercises": [
+           {"name": "Dumbbell Curl (Standing/Alternating)", "sets": "4×10-12", "tip": "Elbow fixed रखो, shoulder नहीं हिलाओ, full squeeze at top"},
+           {"name": "Barbell Curl (Straight or EZ Bar)", "sets": "4×8-10", "tip": "Back straight, controlled movement, no swinging"},
+           {"name": "Incline Dumbbell Curl", "sets": "3×10-12", "tip": "Bench 45-60° पर, deep stretch at bottom for long head"},
+           {"name": "Hammer Curl", "sets": "3×12", "tip": "Neutral grip, brachialis target — thickness बढ़ाने के लिए best"},
+           {"name": "Preacher Curl (Barbell/EZ/Dumbbell)", "sets": "3×10-12", "tip": "Full extension लो, slow negative, peak बनाने के लिए king"},
+           {"name": "Concentration Curl", "sets": "3×12-15", "tip": "Mind-muscle connection पर focus, elbow thigh पर fix"},
+           {"name": "Cable Curl (Straight or EZ Bar)", "sets": "3×12-15", "tip": "Constant tension बनाए रखो, peak contraction"},
+           {"name": "Bayesian Cable Curl (Face Away)", "sets": "3×12", "tip": "Cable के पीछे खड़े होकर, awesome stretch + tension"},
+           {"name": "Drag Curl", "sets": "3×10-12", "tip": "Barbell/Dumbbell — bar को body के साथ drag करो, long head hit"},
+           {"name": "Spider Curl / Prone Bench Curl", "sets": "3×12", "tip": "Bench पर पेट के बल लेटकर, strict form, no cheating"}
+     ],
+     "video": "https://www.youtube.com/embed/ykJmrZ5v0Oo",
+     "info": "💡 Biceps = Arm का front muscle. Peak के लिए Preacher + Incline Curl best। Thickness के लिए Hammer + Drag Curl। हर workout में 2-3 variation बदलते रहो। Total 12-20 sets weekly enough for most people।"
+ }
+    "🏔️ Shoulders": {
+       "color": "#3b82f6",
         "exercises": [
-            {"name": "Dumbbell Curl",      "sets": "3×12", "tip": "Elbow fixed रखो, shoulder नहीं हिलाओ"},
-            {"name": "Barbell Curl",       "sets": "4×10", "tip": "Back straight, controlled movement"},
-            {"name": "Hammer Curl",        "sets": "3×12", "tip": "Neutral grip, brachialis target"},
-            {"name": "Preacher Curl",      "sets": "3×10", "tip": "Full extension लो, slow negative"},
-            {"name": "Concentration Curl", "sets": "3×15", "tip": "Mind-muscle connection पर focus"},
-            {"name": "Cable Curl",         "sets": "3×12", "tip": "Constant tension बनाए रखो"},
-        ],
-        "video": "https://www.youtube.com/embed/ykJmrZ5v0Oo",
-        "info":  "💡 Biceps = Arm का front muscle. Peak बनाने के लिए Preacher Curl best है।"
-    },
-    "🦾 Triceps": {
-        "color": "#f97316",
-        "exercises": [
-            {"name": "Tricep Pushdown",    "sets": "4×12", "tip": "Elbows body से touch रहें"},
-            {"name": "Overhead Extension", "sets": "3×12", "tip": "Core tight, elbow flare मत करो"},
-            {"name": "Skull Crushers",     "sets": "3×10", "tip": "Weight को control करो"},
-            {"name": "Close Grip Bench",   "sets": "3×10", "tip": "Grip shoulder-width रखो"},
-            {"name": "Tricep Dips",        "sets": "3×15", "tip": "Chest को forward lean मत करो"},
-        ],
-        "video": "https://www.youtube.com/embed/2-LAMcpzODU",
-        "info":  "💡 Triceps = Arm का 2/3 हिस्सा! Arms बड़े करने हैं तो Triceps पर ज्यादा focus करो।"
-    },
-    "🏔️ Shoulder": {
-        "color": "#eab308",
-        "exercises": [
-            {"name": "Overhead Press",  "sets": "4×10", "tip": "Core brace, knees slightly bent"},
-            {"name": "Lateral Raise",   "sets": "3×15", "tip": "Slow & controlled, elbow slight bend"},
-            {"name": "Front Raise",     "sets": "3×12", "tip": "Don't use momentum"},
-            {"name": "Arnold Press",    "sets": "3×12", "tip": "Full rotation of wrist"},
-            {"name": "Rear Delt Fly",   "sets": "3×15", "tip": "Bend forward 45°, elbow wide"},
-        ],
-        "video": "https://www.youtube.com/embed/qEwKCR5JCog",
-        "info":  "💡 3D Shoulders चाहिए? Front, Side, Rear — तीनों train करो।"
-    },
+           {"name": "Seated Dumbbell Shoulder Press", "sets": "4×8-10", "tip": "Full range, controlled movement, core tight रखो"},
+           {"name": "Overhead Press (Barbell Standing)", "sets": "4×8-10", "tip": "Core brace करो, knees slightly bent, strict form"},
+           {"name": "Arnold Press", "sets": "3×10-12", "tip": "Full rotation दो, front + side delts दोनों hit होते हैं"},
+           {"name": "Lateral Raise (Dumbbell)", "sets": "4×12-15", "tip": "Slow & controlled, pinky ऊपर, elbow slight bend"},
+           {"name": "Cable Lateral Raise (Single Arm)", "sets": "3×12-15", "tip": "Constant tension, best side delt builder"},
+           {"name": "Front Raise (Dumbbell or Plate)", "sets": "3×12", "tip": "Momentum मत यूज करो, controlled lift"},
+           {"name": "Rear Delt Fly (Dumbbell)", "sets": "4×12-15", "tip": "Chest supported या bent over, elbows wide, squeeze rear delts"},
+           {"name": "Face Pull (Cable)", "sets": "3×15", "tip": "Rear delts + upper traps + rotator cuff के लिए best"},
+           {"name": "Upright Row (EZ Bar or Cable)", "sets": "3×10-12", "tip": "Elbows high, traps + side delts hit"},
+           {"name": "Behind The Neck Press (Light Weight)", "sets": "3×10", "tip": "Mobility अच्छी हो तभी करो, otherwise avoid"}
+      ],
+      "video": "https://www.youtube.com/embed/qEwKCR5JCog",
+      "info": "💡 3D Shoulders के लिए Front, Side और Rear Delts — तीनों को equal importance दो। Rear delts अक्सर neglect हो जाते हैं, इसलिए Face Pull और Rear Delt Fly जरूर शामिल करो। Weekly 12-20 sets काफी हैं।"
+}
     "🫁 Chest": {
-        "color": "#ec4899",
-        "exercises": [
-            {"name": "Flat Bench Press",       "sets": "4×10", "tip": "Arch back slightly, feet flat"},
-            {"name": "Incline Dumbbell Press", "sets": "3×12", "tip": "Upper chest के लिए best"},
-            {"name": "Cable Flyes",            "sets": "3×15", "tip": "Full stretch at bottom"},
-            {"name": "Push-Ups",               "sets": "3×20", "tip": "Elbows 45°, chest to floor"},
-            {"name": "Decline Press",          "sets": "3×12", "tip": "Lower chest target"},
-        ],
-        "video": "https://www.youtube.com/embed/SCVCLChPQFY",
-        "info":  "💡 Big Chest = Compound movements first (Bench Press), then isolation (Flyes)।"
-    },
+       "color": "#ec4899",
+       "exercises": [
+           {"name": "Flat Barbell Bench Press",      "sets": "4×8-10", "tip": "Shoulder blades squeezed, slight arch, full control"},
+           {"name": "Incline Dumbbell Press",        "sets": "4×10-12", "tip": "Upper chest के लिए सबसे best movement, 30-45° incline"},
+           {"name": "Flat Dumbbell Bench Press",     "sets": "3×10-12", "tip": "Better stretch than barbell, deep contraction"},
+           {"name": "Incline Barbell Bench Press",   "sets": "3×8-10", "tip": "Upper chest thickness के लिए powerful"},
+           {"name": "Cable Flyes (Mid Chest)",       "sets": "3×12-15", "tip": "Full stretch at bottom + strong squeeze at top"},
+           {"name": "Low to High Cable Flyes",       "sets": "3×12-15", "tip": "Upper chest को target करने के लिए best isolation"},
+           {"name": "Decline Dumbbell Press",        "sets": "3×10-12", "tip": "Lower chest development के लिए"},
+           {"name": "Chest Dips (Weighted if possible)", "sets": "3×10-12", "tip": "Lean forward, elbows flared — lower chest killer"},
+           {"name": "Pec Deck / Machine Fly",        "sets": "3×12-15", "tip": "Mind-muscle connection, slow negatives"},
+           {"name": "Push-Ups (Diamond or Wide Grip)", "sets": "3×15-20", "tip": "Home या finisher के लिए, chest to floor"}
+     ],
+      "video": "https://www.youtube.com/embed/SCVCLChPQFY",
+      "info": "💡 Big & Full Chest बनाने के लिए: Heavy Compound (Bench Press) पहले करो, फिर Isolation (Flyes)। Upper chest अक्सर weak रहता है इसलिए Incline Press और Low-to-High Flyes पर extra focus दो। Weekly 12-20 sets काफी हैं।"
+ }
     "🦵 Legs": {
-        "color": "#22c55e",
-        "exercises": [
-            {"name": "Squats",            "sets": "4×12", "tip": "Knees over toes, deep squat लो"},
-            {"name": "Leg Press",         "sets": "4×15", "tip": "Full depth, knees don't cave in"},
-            {"name": "Romanian Deadlift", "sets": "3×12", "tip": "Hamstring stretch feel करो"},
-            {"name": "Leg Extension",     "sets": "3×15", "tip": "Quad squeeze at top"},
-            {"name": "Calf Raises",       "sets": "4×20", "tip": "Slow negatives, full range"},
-        ],
-        "video": "https://www.youtube.com/embed/aclHkVaku9U",
-        "info":  "💡 Leg day skip मत करो! Body का 70% muscle legs में है।"
-    },
+       "color": "#22c55e",
+       "exercises": [
+           {"name": "Barbell Back Squat",          "sets": "4×8-10", "tip": "Deep squat लो, knees track over toes, chest up"},
+           {"name": "Leg Press",                   "sets": "4×10-12", "tip": "Full depth, feet shoulder width, knees cave-in मत होने दो"},
+           {"name": "Romanian Deadlift",           "sets": "4×8-10", "tip": "Hamstring में deep stretch feel करो, back straight"},
+           {"name": "Bulgarian Split Squat",       "sets": "3×10-12 (each leg)", "tip": "Rear foot elevated, front quad burn होगा"},
+           {"name": "Walking Lunges (Dumbbell)",   "sets": "3×12-15 (each leg)", "tip": "Step forward, back knee almost touch floor"},
+           {"name": "Leg Extension",               "sets": "3×12-15", "tip": "Quad squeeze at top, slow negative"},
+           {"name": "Seated Leg Curl",             "sets": "3×12-15", "tip": "Hamstrings target, full contraction"},
+           {"name": "Lying Leg Curl",              "sets": "3×12-15", "tip": "Hamstring burn के लिए best"},
+           {"name": "Standing Calf Raises",        "sets": "4×15-20", "tip": "Full stretch at bottom + squeeze at top"},
+           {"name": "Seated Calf Raises",          "sets": "3×15-20", "tip": "Soleus muscle target, slow movement"}
+     ],
+       "video": "https://www.youtube.com/embed/aclHkVaku9U",
+       "info": "💡 Legs = Body का सबसे बड़ा muscle group। Skip मत करो! Quads, Hamstrings, Glutes और Calves — चारों को train करो। Heavy Squats + Romanian Deadlift से strength और size दोनों आएगा। Weekly 12-20 sets रखो।"
+  }
     "🏛️ Back": {
-        "color": "#3b82f6",
+       "color": "#3b82f6",
         "exercises": [
-            {"name": "Deadlift",         "sets": "4×6",  "tip": "Back flat, hinge at hips"},
-            {"name": "Pull-Ups",         "sets": "3×10", "tip": "Full extension, chin over bar"},
-            {"name": "Barbell Row",      "sets": "4×10", "tip": "Elbows back, squeeze lats"},
-            {"name": "Lat Pulldown",     "sets": "3×12", "tip": "Chest up, lean back slightly"},
-            {"name": "Seated Cable Row", "sets": "3×15", "tip": "Shoulder blades squeeze"},
-        ],
-        "video": "https://www.youtube.com/embed/1T089J5H5Dw",
-        "info":  "💡 V-taper चाहिए? Lat Pulldown + Pull-Ups = width, Rows = thickness।"
-    },
+           {"name": "Conventional Deadlift",       "sets": "4×6-8",  "tip": "Back flat, hips hinge, powerful pull from legs"},
+           {"name": "Pull-Ups (Wide Grip)",        "sets": "4×8-10", "tip": "Full stretch at bottom, chin over bar, controlled negative"},
+           {"name": "Bent Over Barbell Row",       "sets": "4×8-10", "tip": "Back parallel to floor, elbows back, squeeze shoulder blades"},
+           {"name": "Lat Pulldown (Wide Grip)",    "sets": "4×10-12", "tip": "Chest up, bar को chest की तरफ लाओ, lats stretch feel करो"},
+           {"name": "Seated Cable Row",            "sets": "3×12-15", "tip": "Neutral grip, shoulder blades को strongly squeeze करो"},
+           {"name": "Single Arm Dumbbell Row",     "sets": "3×10-12 (each side)", "tip": "One knee on bench, big stretch + powerful pull"},
+           {"name": "Chest Supported T-Bar Row",   "sets": "3×10-12", "tip": "Lower back strain कम, thickness के लिए excellent"},
+           {"name": "Face Pull",                   "sets": "3×15", "tip": "Rear delts + upper back + traps के लिए best"},
+           {"name": "Straight Arm Pulldown",       "sets": "3×12-15", "tip": "Lats isolation, arms straight रखो, strong mind-muscle connection"},
+           {"name": "Shrugs (Dumbbell or Barbell)", "sets": "3×15-20", "tip": "Traps के लिए, full shrug + hold at top"}
+     ],
+      "video": "https://www.youtube.com/embed/1T089J5H5Dw",
+      "info": "💡 V-Taper बनाने के लिए: Wide Pull-Ups + Lat Pulldown से Width, Bent Over Row + Seated Row से Thickness। Deadlift overall back + posterior chain के लिए king है। Lower back और traps को भी neglect मत करो।"
+     }
     "🏃 Cardio": {
         "color": "#a855f7",
-        "exercises": [
-            {"name": "Treadmill Run",  "sets": "20 min",  "tip": "Incline 5-10% add करो"},
-            {"name": "Jump Rope",      "sets": "5×3 min", "tip": "Wrist से jump करो"},
-            {"name": "Cycling",        "sets": "30 min",  "tip": "Medium resistance"},
-            {"name": "HIIT Intervals", "sets": "20 min",  "tip": "30s max effort, 30s rest"},
-            {"name": "Stair Climber",  "sets": "15 min",  "tip": "Don't hold rails"},
-        ],
+        "{
+     "exercises": [
+       {
+         "name": "Treadmill Run",
+         "sets": "5 min walk + 15 min run",
+         "tip": "Incline 5-10% रखो, last 5 min speed बढ़ाओ"
+       },
+       {
+         "name": "HIIT Intervals",
+         "sets": "20 min (30s sprint + 30s rest)",
+         "tip": "90-100% effort sprint में दो, यही main fat burner है"
+       },
+       {
+         "name": "Cycling",
+         "sets": "25-30 min",
+         "tip": "Medium resistance, steady pace maintain करो"
+       },
+       {
+         "name": "Jump Rope",
+         "sets": "5×3 min",
+         "tip": "Wrist से jump करो, low height jumps रखो"
+       },
+       {
+         "name": "Stair Climber",
+         "sets": "10-15 min",
+         "tip": "Rails पकड़ने से बचो, core tight रखो"
+       }
+  ],
+  "video": "https://www.youtube.com/embed/ml6cT4AZdqI",
+  "info": "💡 Fat loss के लिए HIIT सबसे effective है। 3-4 दिन HIIT + बाकी दिन light cardio best combination है।"
+}
         "video": "https://www.youtube.com/embed/ml6cT4AZdqI",
         "info":  "💡 Fat loss के लिए HIIT > Steady cardio। Less time, more results।"
     },
     "🧘 Yoga": {
         "color": "#06b6d4",
-        "exercises": [
-            {"name": "Sun Salutation", "sets": "5 rounds", "tip": "Slow breathing"},
-            {"name": "Warrior Pose",   "sets": "Hold 30s", "tip": "Hip alignment"},
-            {"name": "Downward Dog",   "sets": "Hold 1 min","tip": "Heels push down"},
-            {"name": "Child's Pose",   "sets": "Hold 2 min","tip": "Forehead to floor"},
-            {"name": "Shavasana",      "sets": "5 min",     "tip": "Complete relaxation"},
-        ],
-        "video": "https://www.youtube.com/embed/v7AYKMP6rOE",
-        "info":  "💡 Yoga = Recovery + Flexibility + Mental Peace।"
-    },
-}
+        {
+     "exercises": [
+       {
+         "name": "Sun Salutation",
+         "sets": "5-8 rounds",
+         "tip": "Slow controlled breathing, flow maintain करो"
+       },
+       {
+         "name": "Warrior Pose",
+         "sets": "Hold 30-40s each side",
+         "tip": "Knee ankle के ऊपर रखो, hips aligned"
+       },
+      {
+         "name": "Downward Dog",
+         "sets": "Hold 1 min",
+         "tip": "Heels नीचे push करो, back straight रखो"
+       },
+       {
+         "name": "Plank to Chaturanga",
+         "sets": "10-12 reps",
+         "tip": "Core tight रखो, elbows close to body"
+       },
+       {
+         "name": "Cobra Pose",
+         "sets": "Hold 30s",
+         "tip": "Lower back से lift करो, shoulders relaxed"
+       },
+       {
+         "name": "Chair Pose",
+         "sets": "Hold 30-45s",
+         "tip": "Weight heels पर रखो, knees stable"
+       },
+       {
+         "name": "Seated Forward Fold",
+         "sets": "Hold 1 min",
+         "tip": "Back straight रखो, धीरे stretch करो"
+       },
+       {
+         "name": "Child's Pose",
+         "sets": "Hold 2 min",
+         "tip": "Deep breathing, पूरी body relax करो"
+       },
+       {
+        "name": "Shavasana",
+         "sets": "5-7 min",
+         "tip": "Complete relaxation, mind calm रखो"
+      }
+    ],
+     "video": "https://www.youtube.com/embed/v7AYKMP6rOE",
+     "info": "💡 Yoga = Recovery + Flexibility + Strength + Mental Peace। Gym के बाद ये routine muscle recovery और stress relief के लिए best है।"
+        }
 
-# ─────────────────────────────────────────────
-# LOGIN SYSTEM
-# ─────────────────────────────────────────────
-USERS = {
-    "shadab": "1234",
-    "nikhat": "5678",
-    "admin":  "admin",
-}
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "user" not in st.session_state:
-    st.session_state.user = ""
-
-if not st.session_state.logged_in:
-    st.markdown("""
-    <div style='text-align:center;padding:60px 0 20px;'>
-        <div style='font-size:60px;'>⚡</div>
-        <div style='font-family:Exo 2,sans-serif;font-size:36px;font-weight:900;
-                    background:linear-gradient(135deg,#60a5fa,#a78bfa);
-                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                    letter-spacing:3px;'>GYM AI</div>
-        <div style='color:#475569;font-size:14px;margin-top:6px;'>Smart Fitness Dashboard</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    _, col, _ = st.columns([1, 1, 1])
-    with col:
-        st.markdown("""
-        <div style='background:#0d1117;border:1px solid #1e2d40;border-radius:20px;padding:30px;'>
-        """, unsafe_allow_html=True)
-        st.markdown("#### 🔐 Login करो")
-        username = st.text_input("👤 Username")
-        password = st.text_input("🔑 Password", type="password")
-        if st.button("🚀 Login करो", use_container_width=True):
-            if username.lower() in USERS and USERS[username.lower()] == password:
-                st.session_state.logged_in = True
-                st.session_state.user = username.capitalize()
-                st.success(f"Welcome {username.capitalize()}! 💪")
-                st.rerun()
-            else:
-                st.error("❌ Wrong username या password!")
-        st.caption("🧪 Demo: shadab / 1234  |  nikhat / 5678")
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.stop()
 
 # ─────────────────────────────────────────────
 # SESSION STATE DEFAULTS
