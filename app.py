@@ -93,7 +93,6 @@ hr { border-color: #1e2d40 !important; }
 .stAlert { border-radius: 12px !important; font-family: 'Rajdhani', sans-serif !important; }
 .stDataFrame { border-radius: 12px !important; overflow: hidden; }
 
-/* Glass Card */
 .glass {
     background: rgba(255,255,255,0.04);
     backdrop-filter: blur(10px);
@@ -102,26 +101,7 @@ hr { border-color: #1e2d40 !important; }
     border: 1px solid rgba(255,255,255,0.08);
     margin-bottom: 10px;
 }
-
-/* Progress bar smooth */
-.progress-fill {
-    transition: width 0.5s ease-in-out;
-}
-
-/* Floating Button */
-.fab {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 999;
-    background: linear-gradient(135deg, #1d4ed8, #7c3aed);
-    color: white;
-    padding: 14px 18px;
-    border-radius: 50px;
-    font-size: 20px;
-    box-shadow: 0 4px 20px #1d4ed866;
-    cursor: pointer;
-}
+.progress-fill { transition: width 0.5s ease-in-out; }
 
 @media (max-width: 768px) {
     h1 { font-size: 22px !important; }
@@ -206,185 +186,139 @@ def load_data():
             pass
 
 # ─────────────────────────────────────────────
-# EXERCISE DATA
+# EXERCISE DATA  (fixed syntax — no duplicate keys, no stray braces)
 # ─────────────────────────────────────────────
 MUSCLE_DATA = {
     "💪 Biceps": {
         "color": "#ef4444",
-       "exercises": [
-           {"name": "Dumbbell Curl (Standing/Alternating)", "sets": "4×10-12", "tip": "Elbow fixed रखो, shoulder नहीं हिलाओ, full squeeze at top"},
-           {"name": "Barbell Curl (Straight or EZ Bar)", "sets": "4×8-10", "tip": "Back straight, controlled movement, no swinging"},
-           {"name": "Incline Dumbbell Curl", "sets": "3×10-12", "tip": "Bench 45-60° पर, deep stretch at bottom for long head"},
-           {"name": "Hammer Curl", "sets": "3×12", "tip": "Neutral grip, brachialis target — thickness बढ़ाने के लिए best"},
-           {"name": "Preacher Curl (Barbell/EZ/Dumbbell)", "sets": "3×10-12", "tip": "Full extension लो, slow negative, peak बनाने के लिए king"},
-           {"name": "Concentration Curl", "sets": "3×12-15", "tip": "Mind-muscle connection पर focus, elbow thigh पर fix"},
-           {"name": "Cable Curl (Straight or EZ Bar)", "sets": "3×12-15", "tip": "Constant tension बनाए रखो, peak contraction"},
-           {"name": "Bayesian Cable Curl (Face Away)", "sets": "3×12", "tip": "Cable के पीछे खड़े होकर, awesome stretch + tension"},
-           {"name": "Drag Curl", "sets": "3×10-12", "tip": "Barbell/Dumbbell — bar को body के साथ drag करो, long head hit"},
-           {"name": "Spider Curl / Prone Bench Curl", "sets": "3×12", "tip": "Bench पर पेट के बल लेटकर, strict form, no cheating"}
-     ],
-     "video": "https://www.youtube.com/embed/ykJmrZ5v0Oo",
-     "info": "💡 Biceps = Arm का front muscle. Peak के लिए Preacher + Incline Curl best। Thickness के लिए Hammer + Drag Curl। हर workout में 2-3 variation बदलते रहो। Total 12-20 sets weekly enough for most people।"
- }
+        "exercises": [
+            {"name": "Dumbbell Curl (Standing/Alternating)", "tip": "Elbow fixed रखो, shoulder नहीं हिलाओ, full squeeze at top"},
+            {"name": "Barbell Curl (Straight or EZ Bar)",   "tip": "Back straight, controlled movement, no swinging"},
+            {"name": "Incline Dumbbell Curl",                "tip": "Bench 45-60° पर, deep stretch at bottom for long head"},
+            {"name": "Hammer Curl",                          "tip": "Neutral grip, brachialis target — thickness बढ़ाने के लिए best"},
+            {"name": "Preacher Curl",                        "tip": "Full extension लो, slow negative, peak बनाने के लिए king"},
+            {"name": "Concentration Curl",                   "tip": "Mind-muscle connection पर focus, elbow thigh पर fix"},
+            {"name": "Cable Curl",                           "tip": "Constant tension बनाए रखो, peak contraction"},
+            {"name": "Bayesian Cable Curl",                  "tip": "Cable के पीछे खड़े होकर, awesome stretch + tension"},
+            {"name": "Drag Curl",                            "tip": "Bar को body के साथ drag करो, long head hit"},
+            {"name": "Spider Curl",                          "tip": "Bench पर पेट के बल लेटकर, strict form, no cheating"},
+        ],
+        "youtube_search": "biceps workout gym exercises",
+        "info": "💡 Biceps = Arm का front muscle. Peak के लिए Preacher + Incline Curl best। Thickness के लिए Hammer + Drag Curl।",
+    },
+    "🔱 Triceps": {
+        "color": "#f97316",
+        "exercises": [
+            {"name": "Close Grip Bench Press",      "tip": "Elbows tucked, powerful push, full lockout"},
+            {"name": "Skull Crusher (EZ Bar)",      "tip": "Elbows fixed, slow descent, full extension at top"},
+            {"name": "Cable Pushdown (Straight)",   "tip": "Elbows glued to sides, squeeze at bottom"},
+            {"name": "Overhead Tricep Extension",   "tip": "Full stretch at bottom, lock out at top"},
+            {"name": "Dips (Tricep Focus)",         "tip": "Stay upright, elbows back, chest अधिक lean मत करो"},
+            {"name": "Rope Pushdown",               "tip": "Rope को नीचे spread करो, full contraction"},
+            {"name": "Single Arm Cable Extension",  "tip": "One arm at a time, better isolation"},
+            {"name": "Diamond Push-Up",             "tip": "Hands diamond shape, elbows in, bodyweight finisher"},
+        ],
+        "youtube_search": "triceps workout gym exercises",
+        "info": "💡 Triceps arm का 2/3 हिस्सा हैं। Big arms चाहिए तो Triceps पर focus जरूरी। Compound + Isolation combo best है।",
+    },
     "🏔️ Shoulders": {
-       "color": "#3b82f6",
+        "color": "#3b82f6",
         "exercises": [
-           {"name": "Seated Dumbbell Shoulder Press", "sets": "4×8-10", "tip": "Full range, controlled movement, core tight रखो"},
-           {"name": "Overhead Press (Barbell Standing)", "sets": "4×8-10", "tip": "Core brace करो, knees slightly bent, strict form"},
-           {"name": "Arnold Press", "sets": "3×10-12", "tip": "Full rotation दो, front + side delts दोनों hit होते हैं"},
-           {"name": "Lateral Raise (Dumbbell)", "sets": "4×12-15", "tip": "Slow & controlled, pinky ऊपर, elbow slight bend"},
-           {"name": "Cable Lateral Raise (Single Arm)", "sets": "3×12-15", "tip": "Constant tension, best side delt builder"},
-           {"name": "Front Raise (Dumbbell or Plate)", "sets": "3×12", "tip": "Momentum मत यूज करो, controlled lift"},
-           {"name": "Rear Delt Fly (Dumbbell)", "sets": "4×12-15", "tip": "Chest supported या bent over, elbows wide, squeeze rear delts"},
-           {"name": "Face Pull (Cable)", "sets": "3×15", "tip": "Rear delts + upper traps + rotator cuff के लिए best"},
-           {"name": "Upright Row (EZ Bar or Cable)", "sets": "3×10-12", "tip": "Elbows high, traps + side delts hit"},
-           {"name": "Behind The Neck Press (Light Weight)", "sets": "3×10", "tip": "Mobility अच्छी हो तभी करो, otherwise avoid"}
-      ],
-      "video": "https://www.youtube.com/embed/qEwKCR5JCog",
-      "info": "💡 3D Shoulders के लिए Front, Side और Rear Delts — तीनों को equal importance दो। Rear delts अक्सर neglect हो जाते हैं, इसलिए Face Pull और Rear Delt Fly जरूर शामिल करो। Weekly 12-20 sets काफी हैं।"
-}
+            {"name": "Seated Dumbbell Shoulder Press", "tip": "Full range, controlled movement, core tight रखो"},
+            {"name": "Overhead Press (Barbell)",       "tip": "Core brace करो, knees slightly bent, strict form"},
+            {"name": "Arnold Press",                   "tip": "Full rotation दो, front + side delts दोनों hit"},
+            {"name": "Lateral Raise (Dumbbell)",       "tip": "Slow & controlled, pinky ऊपर, elbow slight bend"},
+            {"name": "Cable Lateral Raise",            "tip": "Constant tension, best side delt builder"},
+            {"name": "Front Raise",                    "tip": "Momentum मत यूज करो, controlled lift"},
+            {"name": "Rear Delt Fly (Dumbbell)",       "tip": "Chest supported, elbows wide, squeeze rear delts"},
+            {"name": "Face Pull (Cable)",              "tip": "Rear delts + upper traps + rotator cuff के लिए best"},
+            {"name": "Upright Row (EZ Bar)",           "tip": "Elbows high, traps + side delts hit"},
+        ],
+        "youtube_search": "shoulder workout gym exercises",
+        "info": "💡 3D Shoulders के लिए Front, Side और Rear Delts — तीनों को equal importance दो।",
+    },
     "🫁 Chest": {
-       "color": "#ec4899",
-       "exercises": [
-           {"name": "Flat Barbell Bench Press",      "sets": "4×8-10", "tip": "Shoulder blades squeezed, slight arch, full control"},
-           {"name": "Incline Dumbbell Press",        "sets": "4×10-12", "tip": "Upper chest के लिए सबसे best movement, 30-45° incline"},
-           {"name": "Flat Dumbbell Bench Press",     "sets": "3×10-12", "tip": "Better stretch than barbell, deep contraction"},
-           {"name": "Incline Barbell Bench Press",   "sets": "3×8-10", "tip": "Upper chest thickness के लिए powerful"},
-           {"name": "Cable Flyes (Mid Chest)",       "sets": "3×12-15", "tip": "Full stretch at bottom + strong squeeze at top"},
-           {"name": "Low to High Cable Flyes",       "sets": "3×12-15", "tip": "Upper chest को target करने के लिए best isolation"},
-           {"name": "Decline Dumbbell Press",        "sets": "3×10-12", "tip": "Lower chest development के लिए"},
-           {"name": "Chest Dips (Weighted if possible)", "sets": "3×10-12", "tip": "Lean forward, elbows flared — lower chest killer"},
-           {"name": "Pec Deck / Machine Fly",        "sets": "3×12-15", "tip": "Mind-muscle connection, slow negatives"},
-           {"name": "Push-Ups (Diamond or Wide Grip)", "sets": "3×15-20", "tip": "Home या finisher के लिए, chest to floor"}
-     ],
-      "video": "https://www.youtube.com/embed/SCVCLChPQFY",
-      "info": "💡 Big & Full Chest बनाने के लिए: Heavy Compound (Bench Press) पहले करो, फिर Isolation (Flyes)। Upper chest अक्सर weak रहता है इसलिए Incline Press और Low-to-High Flyes पर extra focus दो। Weekly 12-20 sets काफी हैं।"
- }
-    "🦵 Legs": {
-       "color": "#22c55e",
-       "exercises": [
-           {"name": "Barbell Back Squat",          "sets": "4×8-10", "tip": "Deep squat लो, knees track over toes, chest up"},
-           {"name": "Leg Press",                   "sets": "4×10-12", "tip": "Full depth, feet shoulder width, knees cave-in मत होने दो"},
-           {"name": "Romanian Deadlift",           "sets": "4×8-10", "tip": "Hamstring में deep stretch feel करो, back straight"},
-           {"name": "Bulgarian Split Squat",       "sets": "3×10-12 (each leg)", "tip": "Rear foot elevated, front quad burn होगा"},
-           {"name": "Walking Lunges (Dumbbell)",   "sets": "3×12-15 (each leg)", "tip": "Step forward, back knee almost touch floor"},
-           {"name": "Leg Extension",               "sets": "3×12-15", "tip": "Quad squeeze at top, slow negative"},
-           {"name": "Seated Leg Curl",             "sets": "3×12-15", "tip": "Hamstrings target, full contraction"},
-           {"name": "Lying Leg Curl",              "sets": "3×12-15", "tip": "Hamstring burn के लिए best"},
-           {"name": "Standing Calf Raises",        "sets": "4×15-20", "tip": "Full stretch at bottom + squeeze at top"},
-           {"name": "Seated Calf Raises",          "sets": "3×15-20", "tip": "Soleus muscle target, slow movement"}
-     ],
-       "video": "https://www.youtube.com/embed/aclHkVaku9U",
-       "info": "💡 Legs = Body का सबसे बड़ा muscle group। Skip मत करो! Quads, Hamstrings, Glutes और Calves — चारों को train करो। Heavy Squats + Romanian Deadlift से strength और size दोनों आएगा। Weekly 12-20 sets रखो।"
-  }
-    "🏛️ Back": {
-       "color": "#3b82f6",
+        "color": "#ec4899",
         "exercises": [
-           {"name": "Conventional Deadlift",       "sets": "4×6-8",  "tip": "Back flat, hips hinge, powerful pull from legs"},
-           {"name": "Pull-Ups (Wide Grip)",        "sets": "4×8-10", "tip": "Full stretch at bottom, chin over bar, controlled negative"},
-           {"name": "Bent Over Barbell Row",       "sets": "4×8-10", "tip": "Back parallel to floor, elbows back, squeeze shoulder blades"},
-           {"name": "Lat Pulldown (Wide Grip)",    "sets": "4×10-12", "tip": "Chest up, bar को chest की तरफ लाओ, lats stretch feel करो"},
-           {"name": "Seated Cable Row",            "sets": "3×12-15", "tip": "Neutral grip, shoulder blades को strongly squeeze करो"},
-           {"name": "Single Arm Dumbbell Row",     "sets": "3×10-12 (each side)", "tip": "One knee on bench, big stretch + powerful pull"},
-           {"name": "Chest Supported T-Bar Row",   "sets": "3×10-12", "tip": "Lower back strain कम, thickness के लिए excellent"},
-           {"name": "Face Pull",                   "sets": "3×15", "tip": "Rear delts + upper back + traps के लिए best"},
-           {"name": "Straight Arm Pulldown",       "sets": "3×12-15", "tip": "Lats isolation, arms straight रखो, strong mind-muscle connection"},
-           {"name": "Shrugs (Dumbbell or Barbell)", "sets": "3×15-20", "tip": "Traps के लिए, full shrug + hold at top"}
-     ],
-      "video": "https://www.youtube.com/embed/1T089J5H5Dw",
-      "info": "💡 V-Taper बनाने के लिए: Wide Pull-Ups + Lat Pulldown से Width, Bent Over Row + Seated Row से Thickness। Deadlift overall back + posterior chain के लिए king है। Lower back और traps को भी neglect मत करो।"
-     }
+            {"name": "Flat Barbell Bench Press",        "tip": "Shoulder blades squeezed, slight arch, full control"},
+            {"name": "Incline Dumbbell Press",          "tip": "Upper chest के लिए best movement, 30-45° incline"},
+            {"name": "Flat Dumbbell Bench Press",       "tip": "Better stretch than barbell, deep contraction"},
+            {"name": "Incline Barbell Bench Press",     "tip": "Upper chest thickness के लिए powerful"},
+            {"name": "Cable Flyes (Mid Chest)",         "tip": "Full stretch at bottom + strong squeeze at top"},
+            {"name": "Low to High Cable Flyes",         "tip": "Upper chest को target करने के लिए best isolation"},
+            {"name": "Decline Dumbbell Press",          "tip": "Lower chest development के लिए"},
+            {"name": "Chest Dips",                      "tip": "Lean forward, elbows flared — lower chest killer"},
+            {"name": "Pec Deck / Machine Fly",          "tip": "Mind-muscle connection, slow negatives"},
+            {"name": "Push-Ups (Wide/Diamond)",         "tip": "Home या finisher के लिए, chest to floor"},
+        ],
+        "youtube_search": "chest workout gym exercises",
+        "info": "💡 Big & Full Chest: Heavy Compound पहले, फिर Isolation। Upper chest पर extra focus दो।",
+    },
+    "🦵 Legs": {
+        "color": "#22c55e",
+        "exercises": [
+            {"name": "Barbell Back Squat",        "tip": "Deep squat लो, knees track over toes, chest up"},
+            {"name": "Leg Press",                 "tip": "Full depth, feet shoulder width, knees cave-in मत होने दो"},
+            {"name": "Romanian Deadlift",         "tip": "Hamstring में deep stretch feel करो, back straight"},
+            {"name": "Bulgarian Split Squat",     "tip": "Rear foot elevated, front quad burn होगा"},
+            {"name": "Walking Lunges (Dumbbell)", "tip": "Step forward, back knee almost touch floor"},
+            {"name": "Leg Extension",             "tip": "Quad squeeze at top, slow negative"},
+            {"name": "Seated Leg Curl",           "tip": "Hamstrings target, full contraction"},
+            {"name": "Lying Leg Curl",            "tip": "Hamstring burn के लिए best"},
+            {"name": "Standing Calf Raises",      "tip": "Full stretch at bottom + squeeze at top"},
+            {"name": "Seated Calf Raises",        "tip": "Soleus muscle target, slow movement"},
+        ],
+        "youtube_search": "leg workout gym exercises squats",
+        "info": "💡 Legs = Body का सबसे बड़ा muscle group। Skip मत करो! Quads, Hamstrings, Glutes और Calves — चारों को train करो।",
+    },
+    "🏛️ Back": {
+        "color": "#6366f1",
+        "exercises": [
+            {"name": "Conventional Deadlift",         "tip": "Back flat, hips hinge, powerful pull from legs"},
+            {"name": "Pull-Ups (Wide Grip)",           "tip": "Full stretch at bottom, chin over bar, controlled negative"},
+            {"name": "Bent Over Barbell Row",          "tip": "Back parallel to floor, elbows back, squeeze shoulder blades"},
+            {"name": "Lat Pulldown (Wide Grip)",       "tip": "Chest up, bar को chest की तरफ लाओ, lats stretch"},
+            {"name": "Seated Cable Row",               "tip": "Neutral grip, shoulder blades strongly squeeze करो"},
+            {"name": "Single Arm Dumbbell Row",        "tip": "One knee on bench, big stretch + powerful pull"},
+            {"name": "Chest Supported T-Bar Row",      "tip": "Lower back strain कम, thickness के लिए excellent"},
+            {"name": "Face Pull",                      "tip": "Rear delts + upper back + traps के लिए best"},
+            {"name": "Straight Arm Pulldown",          "tip": "Lats isolation, arms straight रखो"},
+            {"name": "Shrugs (Dumbbell or Barbell)",   "tip": "Traps के लिए, full shrug + hold at top"},
+        ],
+        "youtube_search": "back workout gym exercises deadlift",
+        "info": "💡 V-Taper बनाने के लिए: Wide Pull-Ups से Width, Bent Over Row से Thickness। Deadlift = king।",
+    },
     "🏃 Cardio": {
         "color": "#a855f7",
-        "{
-     "exercises": [
-       {
-         "name": "Treadmill Run",
-         "sets": "5 min walk + 15 min run",
-         "tip": "Incline 5-10% रखो, last 5 min speed बढ़ाओ"
-       },
-       {
-         "name": "HIIT Intervals",
-         "sets": "20 min (30s sprint + 30s rest)",
-         "tip": "90-100% effort sprint में दो, यही main fat burner है"
-       },
-       {
-         "name": "Cycling",
-         "sets": "25-30 min",
-         "tip": "Medium resistance, steady pace maintain करो"
-       },
-       {
-         "name": "Jump Rope",
-         "sets": "5×3 min",
-         "tip": "Wrist से jump करो, low height jumps रखो"
-       },
-       {
-         "name": "Stair Climber",
-         "sets": "10-15 min",
-         "tip": "Rails पकड़ने से बचो, core tight रखो"
-       }
-  ],
-  "video": "https://www.youtube.com/embed/ml6cT4AZdqI",
-  "info": "💡 Fat loss के लिए HIIT सबसे effective है। 3-4 दिन HIIT + बाकी दिन light cardio best combination है।"
-}
-        "video": "https://www.youtube.com/embed/ml6cT4AZdqI",
-        "info":  "💡 Fat loss के लिए HIIT > Steady cardio। Less time, more results।"
+        "exercises": [
+            {"name": "Treadmill Run",       "tip": "Incline 5-10% रखो, last 5 min speed बढ़ाओ"},
+            {"name": "HIIT Intervals",      "tip": "30s sprint + 30s rest, 90-100% effort sprint में दो"},
+            {"name": "Cycling",             "tip": "Medium resistance, steady pace maintain करो"},
+            {"name": "Jump Rope",           "tip": "Wrist से jump करो, low height jumps रखो"},
+            {"name": "Stair Climber",       "tip": "Rails पकड़ने से बचो, core tight रखो"},
+            {"name": "Rowing Machine",      "tip": "Legs first, then pull arms — full body cardio"},
+            {"name": "Battle Ropes",        "tip": "Core engaged, explosive waves, 30s on 30s off"},
+        ],
+        "youtube_search": "cardio HIIT workout fat loss gym",
+        "info": "💡 Fat loss के लिए HIIT सबसे effective है। 3-4 दिन HIIT + बाकी दिन light cardio best।",
     },
     "🧘 Yoga": {
         "color": "#06b6d4",
-        {
-     "exercises": [
-       {
-         "name": "Sun Salutation",
-         "sets": "5-8 rounds",
-         "tip": "Slow controlled breathing, flow maintain करो"
-       },
-       {
-         "name": "Warrior Pose",
-         "sets": "Hold 30-40s each side",
-         "tip": "Knee ankle के ऊपर रखो, hips aligned"
-       },
-      {
-         "name": "Downward Dog",
-         "sets": "Hold 1 min",
-         "tip": "Heels नीचे push करो, back straight रखो"
-       },
-       {
-         "name": "Plank to Chaturanga",
-         "sets": "10-12 reps",
-         "tip": "Core tight रखो, elbows close to body"
-       },
-       {
-         "name": "Cobra Pose",
-         "sets": "Hold 30s",
-         "tip": "Lower back से lift करो, shoulders relaxed"
-       },
-       {
-         "name": "Chair Pose",
-         "sets": "Hold 30-45s",
-         "tip": "Weight heels पर रखो, knees stable"
-       },
-       {
-         "name": "Seated Forward Fold",
-         "sets": "Hold 1 min",
-         "tip": "Back straight रखो, धीरे stretch करो"
-       },
-       {
-         "name": "Child's Pose",
-         "sets": "Hold 2 min",
-         "tip": "Deep breathing, पूरी body relax करो"
-       },
-       {
-        "name": "Shavasana",
-         "sets": "5-7 min",
-         "tip": "Complete relaxation, mind calm रखो"
-      }
-    ],
-     "video": "https://www.youtube.com/embed/v7AYKMP6rOE",
-     "info": "💡 Yoga = Recovery + Flexibility + Strength + Mental Peace। Gym के बाद ये routine muscle recovery और stress relief के लिए best है।"
-        }
-
-
+        "exercises": [
+            {"name": "Sun Salutation",         "tip": "Slow controlled breathing, flow maintain करो"},
+            {"name": "Warrior Pose",           "tip": "Knee ankle के ऊपर रखो, hips aligned"},
+            {"name": "Downward Dog",           "tip": "Heels नीचे push करो, back straight रखो"},
+            {"name": "Plank to Chaturanga",    "tip": "Core tight रखो, elbows close to body"},
+            {"name": "Cobra Pose",             "tip": "Lower back से lift करो, shoulders relaxed"},
+            {"name": "Chair Pose",             "tip": "Weight heels पर रखो, knees stable"},
+            {"name": "Seated Forward Fold",    "tip": "Back straight रखो, धीरे stretch करो"},
+            {"name": "Child's Pose",           "tip": "Deep breathing, पूरी body relax करो"},
+            {"name": "Shavasana",              "tip": "Complete relaxation, mind calm रखो"},
+        ],
+        "youtube_search": "yoga workout for gym recovery flexibility",
+        "info": "💡 Yoga = Recovery + Flexibility + Strength + Mental Peace। Gym के बाद ये routine best है।",
+    },
+}
 
 # ─────────────────────────────────────────────
 # SESSION STATE DEFAULTS
@@ -395,16 +329,17 @@ days_hindi = {
 }
 
 defaults = {
-    "checked":      {},
-    "workout_log":  [],
-    "streak":       0,
-    "weekly":       {d: False for d in days_hindi},
-    "last_workout": "",
-    "start_time":   None,
-    "elapsed":      0,
-    "rest_timer":   0,
-    "body_weight":  70.0,
-    "goal_weight":  65.0,
+    "checked":        {},
+    "workout_log":    [],
+    "streak":         0,
+    "weekly":         {d: False for d in days_hindi},
+    "last_workout":   "",
+    "sw_running":     False,
+    "sw_start_ts":    0.0,
+    "sw_accumulated": 0.0,
+    "rest_timer":     0,
+    "body_weight":    70.0,
+    "goal_weight":    65.0,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -413,28 +348,20 @@ for k, v in defaults.items():
 load_data()
 
 # ─────────────────────────────────────────────
-# SIDEBAR
+# SIDEBAR  (login removed, sidebar circle removed)
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown(f"""
+    st.markdown("""
     <div style='text-align:center;padding:10px 0 20px;'>
         <div style='font-size:38px;'>⚡</div>
-        <div style='font-family:Exo 2,sans-serif;font-size:20px;font-weight:900;
+        <div style='font-family:"Exo 2",sans-serif;font-size:20px;font-weight:900;
                     background:linear-gradient(135deg,#60a5fa,#a78bfa);
                     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                     letter-spacing:2px;'>GYM AI</div>
-        <div style='color:#60a5fa;font-size:12px;margin-top:4px;'>👤 {st.session_state.user}</div>
-        <div style='color:#475569;font-size:10px;'>Smart Fitness Dashboard</div>
+        <div style='color:#475569;font-size:10px;margin-top:4px;'>Smart Fitness Dashboard</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Logout
-    if st.button("🚪 Logout", use_container_width=True):
-        st.session_state.logged_in = False
-        st.session_state.user = ""
-        st.rerun()
-
-    st.markdown("---")
     st.markdown("### 🏋️ Workout Menu")
     menu = st.radio("Select", list(MUSCLE_DATA.keys()), label_visibility="collapsed")
 
@@ -495,13 +422,12 @@ st.markdown(f"""
     <h1 style='margin:0;font-size:34px;font-weight:900;
                background:linear-gradient(135deg,{color},{color}88);
                -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-               font-family:Exo 2,sans-serif;letter-spacing:2px;'>
+               font-family:"Exo 2",sans-serif;letter-spacing:2px;'>
         {menu.upper()} WORKOUT
     </h1>
     <p style='color:#64748b;margin:4px 0 0;font-size:14px;'>
         {date.today().strftime("%A, %d %B %Y")}
         &nbsp;|&nbsp; {done_count}/{total_count} exercises complete
-        &nbsp;|&nbsp; 👤 {st.session_state.user}
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -547,14 +473,13 @@ with tab1:
             nc      = color        if is_done else "#e2e8f0"
             strike  = "line-through" if is_done else "none"
 
-            col_chk, col_inf, col_set, col_wt = st.columns([1, 5, 2, 2])
+            col_chk, col_inf, col_wt = st.columns([1, 6, 2])
 
             with col_chk:
                 checked = st.checkbox("", value=is_done, key=f"cb_{key}")
 
                 if checked != is_done:
                     wt_val = st.session_state.get(f"wt_{key}", 0.0)
-
                     if checked and wt_val == 0:
                         st.warning("⚠️ पहले weight डालो!")
                     else:
@@ -562,31 +487,22 @@ with tab1:
                         if checked:
                             now   = datetime.now()
                             today = now.strftime("%d-%m-%Y")
-
-                            # Auto streak
                             if st.session_state.last_workout != today:
                                 st.session_state.streak += 1
                                 st.session_state.last_workout = today
-
-                            # Weekly auto update
                             today_day = now.strftime("%a")
                             if today_day in st.session_state.weekly:
                                 st.session_state.weekly[today_day] = True
-
                             entry = {
                                 "Date":        today,
                                 "Time":        now.strftime("%I:%M %p"),
-                                "User":        st.session_state.user,
                                 "Body Part":   menu.split(" ", 1)[1] if " " in menu else menu,
                                 "Exercise":    ex["name"],
                                 "Weight (kg)": wt_val,
                                 "Status":      "✔ Done"
                             }
                             st.session_state.workout_log.insert(0, entry)
-
-                            # Auto rest timer
                             st.session_state.rest_timer = 60
-
                             save_data()
                             st.toast(f"✅ {ex['name']} logged! 💪", icon="🔥")
                         st.rerun()
@@ -603,79 +519,109 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
 
-            with col_set:
-                st.markdown(f"""
-                <div style='padding:8px;text-align:center;border-radius:10px;
-                            background:{color}22;border:1px solid {color}44;
-                            color:{color};font-weight:700;font-size:13px;margin-top:2px;'>
-                    {ex["sets"]}
-                </div>
-                """, unsafe_allow_html=True)
-
             with col_wt:
                 st.number_input("⚖️ kg", min_value=0.0, max_value=300.0,
                                 step=0.5, value=0.0,
                                 key=f"wt_{key}", label_visibility="visible")
-
             st.markdown("")
 
         st.markdown("---")
 
-        # YouTube Embed
-        st.markdown("### 🎥 Video Guide")
+        # ── YouTube Search Suggestions (replaces fixed embed) ──
+        st.markdown("### 🎥 YouTube Video Guide")
+        yt_query = muscle["youtube_search"].replace(" ", "+")
+        yt_search_url = f"https://www.youtube.com/results?search_query={yt_query}"
+
         st.markdown(f"""
-        <div style='border-radius:14px;overflow:hidden;border:1px solid #1e2d40;'>
-        <iframe width="100%" height="220"
-            src="{muscle['video']}"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen>
-        </iframe>
+        <div style='background:#0d1117;border:1px solid #1e2d40;border-radius:14px;padding:20px;text-align:center;'>
+            <div style='font-size:40px;margin-bottom:8px;'>▶️</div>
+            <div style='color:#e2e8f0;font-size:16px;font-weight:700;margin-bottom:6px;'>
+                {menu} Workout Videos
+            </div>
+            <div style='color:#64748b;font-size:13px;margin-bottom:16px;'>
+                YouTube पर best workout videos देखो
+            </div>
+            <a href="{yt_search_url}" target="_blank"
+               style='background:linear-gradient(135deg,#ff0000,#cc0000);
+                      color:white;padding:10px 24px;border-radius:10px;
+                      text-decoration:none;font-weight:700;font-family:Rajdhani,sans-serif;
+                      font-size:15px;display:inline-block;'>
+                🔴 YouTube पर Search करो
+            </a>
         </div>
         """, unsafe_allow_html=True)
+
+        # Quick video suggestions with clickable links
+        st.markdown("**⚡ Quick Searches:**")
+        suggestions = [
+            f"{menu.split(' ',1)[1] if ' ' in menu else menu} workout for beginners",
+            f"Best {menu.split(' ',1)[1] if ' ' in menu else menu} exercises gym",
+            f"{menu.split(' ',1)[1] if ' ' in menu else menu} muscle building tips",
+        ]
+        for s in suggestions:
+            encoded = s.replace(" ", "+")
+            st.markdown(f"🔗 [{s}](https://www.youtube.com/results?search_query={encoded})")
 
     # ── RIGHT COLUMN ──
     with col_right:
 
-        # ── STOPWATCH ──
+        # ── STOPWATCH (fixed — uses real timestamps) ──
         st.markdown("### ⏱️ Stopwatch")
 
-        if st.session_state.start_time:
-            total_t = int(st.session_state.elapsed +
-                          (time.time() - st.session_state.start_time))
+        # Calculate current display time
+        if st.session_state.sw_running:
+            elapsed_now = st.session_state.sw_accumulated + (time.time() - st.session_state.sw_start_ts)
         else:
-            total_t = int(st.session_state.elapsed)
+            elapsed_now = st.session_state.sw_accumulated
 
-        mins_t = total_t // 60
-        secs_t = total_t % 60
+        total_secs = int(elapsed_now)
+        sw_h  = total_secs // 3600
+        sw_m  = (total_secs % 3600) // 60
+        sw_s  = total_secs % 60
+
+        if sw_h > 0:
+            sw_display = f"{sw_h:02}:{sw_m:02}:{sw_s:02}"
+        else:
+            sw_display = f"{sw_m:02}:{sw_s:02}"
+
+        sw_color = "#22c55e" if st.session_state.sw_running else "#e2e8f0"
 
         st.markdown(f"""
         <div class='glass' style='text-align:center;padding:20px;'>
-            <div style='font-size:42px;font-weight:900;color:#e2e8f0;
-                        font-family:Exo 2,sans-serif;letter-spacing:3px;'>
-                {mins_t:02}:{secs_t:02}
+            <div style='font-size:42px;font-weight:900;color:{sw_color};
+                        font-family:"Exo 2",sans-serif;letter-spacing:3px;'>
+                {sw_display}
             </div>
-            <div style='color:#64748b;font-size:12px;margin-top:4px;'>Workout Time</div>
+            <div style='color:#64748b;font-size:12px;margin-top:4px;'>
+                {'🟢 Running...' if st.session_state.sw_running else 'Workout Time'}
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
         sw1, sw2, sw3 = st.columns(3)
         with sw1:
-            if st.button("▶️ Start", use_container_width=True):
-                if not st.session_state.start_time:
-                    st.session_state.start_time = time.time()
+            if st.button("▶️ Start", use_container_width=True, key="sw_start"):
+                if not st.session_state.sw_running:
+                    st.session_state.sw_running   = True
+                    st.session_state.sw_start_ts  = time.time()
                 st.rerun()
         with sw2:
-            if st.button("⏸ Pause", use_container_width=True):
-                if st.session_state.start_time:
-                    st.session_state.elapsed += time.time() - st.session_state.start_time
-                    st.session_state.start_time = None
+            if st.button("⏸ Pause", use_container_width=True, key="sw_pause"):
+                if st.session_state.sw_running:
+                    st.session_state.sw_accumulated += time.time() - st.session_state.sw_start_ts
+                    st.session_state.sw_running = False
                 st.rerun()
         with sw3:
-            if st.button("🔴 Reset", use_container_width=True):
-                st.session_state.start_time = None
-                st.session_state.elapsed = 0
+            if st.button("🔴 Reset", use_container_width=True, key="sw_reset"):
+                st.session_state.sw_running     = False
+                st.session_state.sw_accumulated = 0.0
+                st.session_state.sw_start_ts    = 0.0
                 st.rerun()
+
+        # Auto-refresh when running
+        if st.session_state.sw_running:
+            time.sleep(1)
+            st.rerun()
 
         st.markdown("---")
 
@@ -688,7 +634,7 @@ with tab1:
         st.markdown(f"""
         <div class='glass' style='text-align:center;padding:18px;'>
             <div style='font-size:36px;font-weight:900;color:{rest_clr};
-                        font-family:Exo 2,sans-serif;letter-spacing:2px;'>
+                        font-family:"Exo 2",sans-serif;letter-spacing:2px;'>
                 {rest_val:02}s
             </div>
             <div style='color:#64748b;font-size:12px;margin-top:4px;'>Rest Time</div>
@@ -697,14 +643,11 @@ with tab1:
 
         r1, r2, r3 = st.columns(3)
         with r1:
-            if st.button("30s", use_container_width=True):
-                st.session_state.rest_timer = 30; st.rerun()
+            if st.button("30s", use_container_width=True): st.session_state.rest_timer = 30; st.rerun()
         with r2:
-            if st.button("60s", use_container_width=True):
-                st.session_state.rest_timer = 60; st.rerun()
+            if st.button("60s", use_container_width=True): st.session_state.rest_timer = 60; st.rerun()
         with r3:
-            if st.button("90s", use_container_width=True):
-                st.session_state.rest_timer = 90; st.rerun()
+            if st.button("90s", use_container_width=True): st.session_state.rest_timer = 90; st.rerun()
 
         if rest_val > 0:
             if st.button("⏹ Stop Rest", use_container_width=True):
@@ -812,8 +755,7 @@ with tab1:
         }
         if music_choice in music_urls:
             st.markdown(f"""
-            <div style='border-radius:12px;overflow:hidden;margin-top:6px;
-                        border:1px solid #1e2d40;'>
+            <div style='border-radius:12px;overflow:hidden;margin-top:6px;border:1px solid #1e2d40;'>
             <iframe width="100%" height="120"
                 src="{music_urls[music_choice]}"
                 frameborder="0" allowfullscreen>
@@ -859,7 +801,6 @@ with tab2:
                          column_config={
                              "Date":        st.column_config.TextColumn("📅 Date",    width="small"),
                              "Time":        st.column_config.TextColumn("⏰ Time",    width="small"),
-                             "User":        st.column_config.TextColumn("👤 User",    width="small"),
                              "Body Part":   st.column_config.TextColumn("💪 Part",    width="medium"),
                              "Exercise":    st.column_config.TextColumn("🏋️ Exercise",width="large"),
                              "Weight (kg)": st.column_config.NumberColumn("⚖️ kg",    width="small"),
@@ -867,8 +808,6 @@ with tab2:
                          })
 
         st.markdown("---")
-
-        # ── Advanced Analytics ──
         st.markdown("### 🔥 Advanced Analytics")
         avg_wt      = df["Weight (kg)"].mean()
         top_part    = df["Body Part"].value_counts().idxmax()
@@ -887,20 +826,18 @@ with tab2:
             🔥 Fat Loss Score: <b style='color:#ef4444;'>{fat_score}/100</b>
         </div>
         <div style='background:#1e2d40;border-radius:99px;height:8px;'>
-            <div style='width:{fat_score}%;height:100%;background:linear-gradient(90deg,#f97316,#ef4444);
+            <div style='width:{fat_score}%;height:100%;
+                        background:linear-gradient(90deg,#f97316,#ef4444);
                         border-radius:99px;transition:width 0.5s;'></div>
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown("---")
-
-        # ── Body Part Breakdown ──
         st.markdown("### 📊 Body Part Breakdown")
         bd = df["Body Part"].value_counts().reset_index()
         bd.columns = ["Body Part", "Count"]
         st.bar_chart(bd.set_index("Body Part"))
 
-        # ── Weight Progress ──
         st.markdown("### ⚖️ Weight Progress")
         ex_opts = df[df["Weight (kg)"] > 0]["Exercise"].unique().tolist()
         if ex_opts:
@@ -911,8 +848,6 @@ with tab2:
             ex_df = ex_df.sort_values("Date")
             if not ex_df.empty:
                 st.line_chart(ex_df.set_index("Date"))
-
-                # Weight Prediction
                 weights = ex_df["Weight (kg)"].values
                 if len(weights) >= 3:
                     trend  = weights[-1] - weights[0]
@@ -936,12 +871,8 @@ with tab2:
         st.markdown("""
         <div style='text-align:center;padding:60px;color:#334155;'>
             <div style='font-size:48px;'>📋</div>
-            <div style='font-size:18px;margin-top:12px;color:#475569;'>
-                अभी कोई log नहीं है
-            </div>
-            <div style='font-size:13px;color:#1e2d40;margin-top:6px;'>
-                Workout tab → exercises tick करो 💪
-            </div>
+            <div style='font-size:18px;margin-top:12px;color:#475569;'>अभी कोई log नहीं है</div>
+            <div style='font-size:13px;color:#1e2d40;margin-top:6px;'>Workout tab → exercises tick करो 💪</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -964,17 +895,16 @@ with tab3:
         </div>
         """, unsafe_allow_html=True)
     else:
-        # Smart suggestion
         if st.session_state.workout_log:
             last_bp = st.session_state.workout_log[0]["Body Part"]
             suggestions = {
-                "Chest":   "👉 आज Back + Biceps करो",
-                "Back":    "👉 आज Chest + Triceps करो",
-                "Legs":    "👉 आज Shoulders + Cardio करो",
-                "Biceps":  "👉 आज Triceps + Chest करो",
-                "Triceps": "👉 आज Back + Biceps करो",
-                "Shoulder":"👉 आज Legs करो 🦵",
-                "Cardio":  "👉 आज Strength training करो 💪",
+                "Chest":     "👉 आज Back + Biceps करो",
+                "Back":      "👉 आज Chest + Triceps करो",
+                "Legs":      "👉 आज Shoulders + Cardio करो",
+                "Biceps":    "👉 आज Triceps + Chest करो",
+                "Triceps":   "👉 आज Back + Biceps करो",
+                "Shoulders": "👉 आज Legs करो 🦵",
+                "Cardio":    "👉 आज Strength training करो 💪",
             }
             sugg = suggestions.get(last_bp, "👉 आज Full Body करो 🔥")
             st.markdown(f"""
@@ -990,27 +920,20 @@ with tab3:
     with q1:
         if st.button("💪 Next Workout Plan", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
-                ans = ask_ai("Next workout plan बनाओ — कल क्या करूँ?",
-                             st.session_state.workout_log)
+                ans = ask_ai("Next workout plan बनाओ — कल क्या करूँ?", st.session_state.workout_log)
             st.success(ans)
-
         if st.button("🔥 Fat Loss Tips", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
-                ans = ask_ai("Fat loss के लिए best tips दो।",
-                             st.session_state.workout_log)
+                ans = ask_ai("Fat loss के लिए best tips दो।", st.session_state.workout_log)
             st.success(ans)
-
     with q2:
         if st.button("📈 Strength बढ़ाओ", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
-                ans = ask_ai("Strength और muscle कैसे बढ़ाऊ?",
-                             st.session_state.workout_log)
+                ans = ask_ai("Strength और muscle कैसे बढ़ाऊ?", st.session_state.workout_log)
             st.success(ans)
-
         if st.button("🥗 Diet Plan", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
-                ans = ask_ai("Simple Indian diet plan दो gym के लिए।",
-                             st.session_state.workout_log)
+                ans = ask_ai("Simple Indian diet plan दो gym के लिए।", st.session_state.workout_log)
             st.success(ans)
 
     st.markdown("---")
@@ -1037,29 +960,24 @@ with tab3:
             st.success(plan)
         else:
             st.markdown("""
-            **📅 30-Day Smart Plan:**
+**📅 30-Day Smart Plan:**
 
-            **Week 1-2 (Foundation):**
-            - Mon: Chest + Triceps
-            - Tue: Back + Biceps
-            - Wed: Cardio / HIIT
-            - Thu: Shoulders
-            - Fri: Legs
-            - Sat: Yoga / Rest
-            - Sun: Rest
+**Week 1-2 (Foundation):**
+- Mon: Chest + Triceps
+- Tue: Back + Biceps
+- Wed: Cardio / HIIT
+- Thu: Shoulders
+- Fri: Legs
+- Sat: Yoga / Rest
+- Sun: Rest
 
-            **Week 3-4 (Progressive Overload):**
-            - हर exercise में 5% weight बढ़ाओ
-            - Protein: 1.6g per kg body weight
-            - नींद: 7-8 घंटे
+**Week 3-4 (Progressive Overload):**
+- हर exercise में 5% weight बढ़ाओ
+- Protein: 1.6g per kg body weight
+- नींद: 7-8 घंटे
 
-            🔥 **Key Rules:**
-            - Compound moves first (Squat, Deadlift, Bench)
-            - Hydration: 3L water daily
-            - Recovery उतना ही important है
+🔥 **Key Rules:**
+- Compound moves first (Squat, Deadlift, Bench)
+- Hydration: 3L water daily
+- Recovery उतना ही important है
             """)
-
-# ── Floating Button ──
-st.markdown("""
-<div class='fab'>💪</div>
-""", unsafe_allow_html=True)
