@@ -142,7 +142,7 @@ Give short, practical advice in Hindi + English mix.
 Keep answer under 120 words. Use bullet points.
 """
         response = groq_client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",",
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user",   "content": question}
@@ -318,7 +318,22 @@ MUSCLE_DATA = {
         "youtube_search": "yoga workout for gym recovery flexibility",
         "info": "💡 Yoga = Recovery + Flexibility + Strength + Mental Peace। Gym के बाद ये routine best है।",
     },
-}
+    "🥗 Diet & Nutrition": {
+       "color": "#10b981",
+       "exercises": [
+           {"name": "High Protein Breakfast",    "tip": "Eggs + Oats + Paneer — सुबह 30g protein लो"},
+           {"name": "Pre-Workout Meal",          "tip": "Banana + Peanut Butter — workout से 1hr पहले"},
+           {"name": "Post-Workout Nutrition",    "tip": "Whey Protein + Rice — workout के 30 min में"},
+           {"name": "Indian Bulking Diet",       "tip": "Dal + Chawal + Ghee + Chicken — calorie surplus"},
+           {"name": "Fat Loss Diet Plan",        "tip": "Deficit 300-500 cal, high protein, low sugar"},
+           {"name": "Vegetarian Protein Sources","tip": "Paneer, Tofu, Rajma, Soybean, Curd — daily लो"},
+           {"name": "Hydration Plan",            "tip": "3-4 लीटर पानी daily, workout में electrolytes"},
+           {"name": "Cheat Meal Strategy",       "tip": "हफ्ते में 1 cheat meal ठीक है — overdo मत करो"},
+       ],
+    "youtube_search": "Indian gym diet plan muscle building fat loss Hindi",
+    "info": "💡 Diet = Results का 70%। Gym कितना भी करो, खाना सही नहीं तो results नहीं।",
+   },
+   }
 
 # ─────────────────────────────────────────────
 # SESSION STATE DEFAULTS
