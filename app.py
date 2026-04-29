@@ -128,18 +128,41 @@ except Exception:
 
 def ask_ai(question, log_data):
     if not AI_ENABLED:
-        return "⚠️ AI offline — Streamlit Secrets में GROQ_API_KEY add करो।"
+        return "⚠️ AI offline"
     try:
+        # Detailed workout history
         history = "\n".join([
-            f"{l['Body Part']} - {l['Exercise']} - {l.get('Weight (kg)', 0)}kg"
-            for l in log_data[:10]
+            f"Date:{l['Date']} | {l['Body Part']} | {l['Exercise']} | {l.get('Weight (kg)',0)}kg"
+            for l in log_data[:20]
         ])
-        prompt = f"""
-You are an expert gym trainer. User workout history:
-{history if history else 'No history yet.'}
 
-Give short, practical advice in Hindi + English mix.
-Keep answer under 120 words. Use bullet points.
+        # Body stats
+        bw = st.session_state.get("body_weight", 70)
+        gw = st.session_state.get("goal_weight", 65)
+        streak = st.session_state.get("streak", 0)
+        weekly_days = sum(1 for v in st.session_state.get("weekly", {}).values() if v)
+
+        prompt = f"""
+You are an expert personal gym trainer and nutritionist.
+
+USER PROFILE:
+- Current Weight: {bw} kg
+- Goal Weight: {gw} kg  
+- Current Streak: {streak} days
+- Days trained this week: {weekly_days}/7
+- Goal type: {"Fat Loss" if gw < bw else "Muscle Gain"}
+
+RECENT WORKOUT HISTORY (last 20 sessions):
+{history if history else 'No history yet — beginner user'}
+
+YOUR JOB:
+- Analyze their actual data above
+- Give PERSONALIZED advice based on their weight, goal, streak, history
+- Point out what muscle groups they are MISSING or OVERTRAINING
+- Suggest specific weights to increase based on their logs
+- Give advice in Hindi + English mix
+- Max 150 words, use bullet points
+- Do NOT give generic advice — be SPECIFIC to their data
 """
         response = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -147,7 +170,8 @@ Keep answer under 120 words. Use bullet points.
                 {"role": "system", "content": prompt},
                 {"role": "user",   "content": question}
             ],
-            max_tokens=250
+            max_tokens=300,
+            temperature=0.8  # थोड़ा creative responses
         )
         return response.choices[0].message.content
     except Exception as e:
