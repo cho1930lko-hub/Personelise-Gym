@@ -142,7 +142,7 @@ Give short, practical advice in Hindi + English mix.
 Keep answer under 120 words. Use bullet points.
 """
         response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user",   "content": question}
