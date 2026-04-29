@@ -92,7 +92,6 @@ h1, h2, h3 {
 hr { border-color: #1e2d40 !important; }
 .stAlert { border-radius: 12px !important; font-family: 'Rajdhani', sans-serif !important; }
 .stDataFrame { border-radius: 12px !important; overflow: hidden; }
-
 .glass {
     background: rgba(255,255,255,0.04);
     backdrop-filter: blur(10px);
@@ -102,7 +101,6 @@ hr { border-color: #1e2d40 !important; }
     margin-bottom: 10px;
 }
 .progress-fill { transition: width 0.5s ease-in-out; }
-
 @media (max-width: 768px) {
     h1 { font-size: 22px !important; }
     .block-container { padding: 1rem !important; }
@@ -113,7 +111,7 @@ hr { border-color: #1e2d40 !important; }
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-# AI SETUP (Groq)
+# AI SETUP (Groq) — model fixed to llama-3.3-70b-versatile
 # ─────────────────────────────────────────────
 try:
     from groq import Groq
@@ -128,18 +126,15 @@ except Exception:
 
 def ask_ai(question, log_data):
     if not AI_ENABLED:
-        return "⚠️ AI offline"
+        return "⚠️ AI offline — Streamlit Secrets में GROQ_API_KEY add करो।"
     try:
-        # Detailed workout history
         history = "\n".join([
             f"Date:{l['Date']} | {l['Body Part']} | {l['Exercise']} | {l.get('Weight (kg)',0)}kg"
             for l in log_data[:20]
         ])
-
-        # Body stats
-        bw = st.session_state.get("body_weight", 70)
-        gw = st.session_state.get("goal_weight", 65)
-        streak = st.session_state.get("streak", 0)
+        bw          = st.session_state.get("body_weight", 70)
+        gw          = st.session_state.get("goal_weight", 65)
+        streak      = st.session_state.get("streak", 0)
         weekly_days = sum(1 for v in st.session_state.get("weekly", {}).values() if v)
 
         prompt = f"""
@@ -147,7 +142,7 @@ You are an expert personal gym trainer and nutritionist.
 
 USER PROFILE:
 - Current Weight: {bw} kg
-- Goal Weight: {gw} kg  
+- Goal Weight: {gw} kg
 - Current Streak: {streak} days
 - Days trained this week: {weekly_days}/7
 - Goal type: {"Fat Loss" if gw < bw else "Muscle Gain"}
@@ -171,14 +166,144 @@ YOUR JOB:
                 {"role": "user",   "content": question}
             ],
             max_tokens=300,
-            temperature=0.8  # थोड़ा creative responses
+            temperature=0.8
         )
         return response.choices[0].message.content
     except Exception as e:
         return f"❌ AI Error: {str(e)}"
 
 # ─────────────────────────────────────────────
-# SAVE / LOAD
+# GOOGLE SHEETS SETUP
+# ─────────────────────────────────────────────
+GSHEET_ENABLED = False
+try:
+    import gspread
+    from google.oauth2.service_account import Credentials
+    GSHEET_ENABLED = True
+except ImportError:
+    pass
+
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+@st.cache_resource
+def get_sheet():
+    if not GSHEET_ENABLED:
+        return None
+    try:
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds      = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        client     = gspread.authorize(creds)
+        sheet      = client.open_by_key(st.secrets["SHEET_ID"])
+        return sheet
+    except Exception:
+        return None
+
+def ensure_worksheets(sheet):
+    needed   = ["WorkoutLog", "BodyStats", "WeeklyTracker", "Settings"]
+    existing = [ws.title for ws in sheet.worksheets()]
+    for name in needed:
+        if name not in existing:
+            sheet.add_worksheet(title=name, rows=1000, cols=20)
+    wl = sheet.worksheet("WorkoutLog")
+    if wl.row_values(1) == []:
+        wl.append_row(["Date","Time","Body Part","Exercise","Weight (kg)","Status"])
+    bs = sheet.worksheet("BodyStats")
+    if bs.row_values(1) == []:
+        bs.append_row(["Date","Body Weight","Goal Weight","BMI"])
+
+def gsheet_save_workout(entry):
+    try:
+        sheet = get_sheet()
+        if not sheet: return False
+        ws = sheet.worksheet("WorkoutLog")
+        ws.append_row([
+            entry["Date"], entry["Time"], entry["Body Part"],
+            entry["Exercise"], entry["Weight (kg)"], entry["Status"]
+        ])
+        return True
+    except Exception:
+        return False
+
+def gsheet_load_workouts():
+    try:
+        sheet = get_sheet()
+        if not sheet: return []
+        ws      = sheet.worksheet("WorkoutLog")
+        records = ws.get_all_records()
+        return list(reversed(records))
+    except Exception:
+        return []
+
+def gsheet_save_body_stats(bw, gw):
+    try:
+        sheet = get_sheet()
+        if not sheet: return False
+        # BodyStats history
+        bs  = sheet.worksheet("BodyStats")
+        bmi = round(bw / (1.70 ** 2), 2)
+        bs.append_row([date.today().strftime("%d-%m-%Y"), bw, gw, bmi])
+        # Settings (latest values)
+        sw = sheet.worksheet("Settings")
+        sw.clear()
+        sw.append_row(["Key", "Value"])
+        sw.append_row(["body_weight", bw])
+        sw.append_row(["goal_weight", gw])
+        sw.append_row(["streak",      st.session_state.get("streak", 0)])
+        sw.append_row(["last_workout",st.session_state.get("last_workout", "")])
+        return True
+    except Exception:
+        return False
+
+def gsheet_load_settings():
+    try:
+        sheet = get_sheet()
+        if not sheet: return {}
+        ws      = sheet.worksheet("Settings")
+        records = ws.get_all_records()
+        return {r["Key"]: r["Value"] for r in records}
+    except Exception:
+        return {}
+
+def gsheet_save_weekly(weekly_dict):
+    try:
+        sheet = get_sheet()
+        if not sheet: return False
+        ws       = sheet.worksheet("WeeklyTracker")
+        ws.clear()
+        ws.append_row(["Day", "Done", "Week"])
+        week_num = date.today().isocalendar()[1]
+        for day, done in weekly_dict.items():
+            ws.append_row([day, str(done), week_num])
+        return True
+    except Exception:
+        return False
+
+def gsheet_load_weekly():
+    try:
+        sheet = get_sheet()
+        if not sheet: return {}
+        ws      = sheet.worksheet("WeeklyTracker")
+        records = ws.get_all_records()
+        return {r["Day"]: r["Done"] == "True" for r in records}
+    except Exception:
+        return {}
+
+def gsheet_load_body_stats_history():
+    """BMI history chart के लिए"""
+    try:
+        sheet = get_sheet()
+        if not sheet: return []
+        ws      = sheet.worksheet("BodyStats")
+        records = ws.get_all_records()
+        return records
+    except Exception:
+        return []
+
+# ─────────────────────────────────────────────
+# LOCAL SAVE / LOAD (fallback)
 # ─────────────────────────────────────────────
 SAVE_FILE = "gym_data.json"
 
@@ -210,7 +335,7 @@ def load_data():
             pass
 
 # ─────────────────────────────────────────────
-# EXERCISE DATA  (fixed syntax — no duplicate keys, no stray braces)
+# EXERCISE DATA
 # ─────────────────────────────────────────────
 MUSCLE_DATA = {
     "💪 Biceps": {
@@ -227,7 +352,7 @@ MUSCLE_DATA = {
             {"name": "Drag Curl",                            "tip": "Bar को body के साथ drag करो, long head hit"},
             {"name": "Spider Curl",                          "tip": "Bench पर पेट के बल लेटकर, strict form, no cheating"},
         ],
-        "youtube_search": "biceps workout gym exercises",
+        "youtube_search": "biceps workout gym exercises Hindi",
         "info": "💡 Biceps = Arm का front muscle. Peak के लिए Preacher + Incline Curl best। Thickness के लिए Hammer + Drag Curl।",
     },
     "🔱 Triceps": {
@@ -242,8 +367,8 @@ MUSCLE_DATA = {
             {"name": "Single Arm Cable Extension",  "tip": "One arm at a time, better isolation"},
             {"name": "Diamond Push-Up",             "tip": "Hands diamond shape, elbows in, bodyweight finisher"},
         ],
-        "youtube_search": "triceps workout gym exercises",
-        "info": "💡 Triceps arm का 2/3 हिस्सा हैं। Big arms चाहिए तो Triceps पर focus जरूरी। Compound + Isolation combo best है।",
+        "youtube_search": "triceps workout gym exercises Hindi",
+        "info": "💡 Triceps arm का 2/3 हिस्सा हैं। Big arms चाहिए तो Triceps पर focus जरूरी।",
     },
     "🏔️ Shoulders": {
         "color": "#3b82f6",
@@ -258,24 +383,24 @@ MUSCLE_DATA = {
             {"name": "Face Pull (Cable)",              "tip": "Rear delts + upper traps + rotator cuff के लिए best"},
             {"name": "Upright Row (EZ Bar)",           "tip": "Elbows high, traps + side delts hit"},
         ],
-        "youtube_search": "shoulder workout gym exercises",
+        "youtube_search": "shoulder workout gym exercises Hindi",
         "info": "💡 3D Shoulders के लिए Front, Side और Rear Delts — तीनों को equal importance दो।",
     },
     "🫁 Chest": {
         "color": "#ec4899",
         "exercises": [
-            {"name": "Flat Barbell Bench Press",        "tip": "Shoulder blades squeezed, slight arch, full control"},
-            {"name": "Incline Dumbbell Press",          "tip": "Upper chest के लिए best movement, 30-45° incline"},
-            {"name": "Flat Dumbbell Bench Press",       "tip": "Better stretch than barbell, deep contraction"},
-            {"name": "Incline Barbell Bench Press",     "tip": "Upper chest thickness के लिए powerful"},
-            {"name": "Cable Flyes (Mid Chest)",         "tip": "Full stretch at bottom + strong squeeze at top"},
-            {"name": "Low to High Cable Flyes",         "tip": "Upper chest को target करने के लिए best isolation"},
-            {"name": "Decline Dumbbell Press",          "tip": "Lower chest development के लिए"},
-            {"name": "Chest Dips",                      "tip": "Lean forward, elbows flared — lower chest killer"},
-            {"name": "Pec Deck / Machine Fly",          "tip": "Mind-muscle connection, slow negatives"},
-            {"name": "Push-Ups (Wide/Diamond)",         "tip": "Home या finisher के लिए, chest to floor"},
+            {"name": "Flat Barbell Bench Press",    "tip": "Shoulder blades squeezed, slight arch, full control"},
+            {"name": "Incline Dumbbell Press",      "tip": "Upper chest के लिए best movement, 30-45° incline"},
+            {"name": "Flat Dumbbell Bench Press",   "tip": "Better stretch than barbell, deep contraction"},
+            {"name": "Incline Barbell Bench Press", "tip": "Upper chest thickness के लिए powerful"},
+            {"name": "Cable Flyes (Mid Chest)",     "tip": "Full stretch at bottom + strong squeeze at top"},
+            {"name": "Low to High Cable Flyes",     "tip": "Upper chest को target करने के लिए best isolation"},
+            {"name": "Decline Dumbbell Press",      "tip": "Lower chest development के लिए"},
+            {"name": "Chest Dips",                  "tip": "Lean forward, elbows flared — lower chest killer"},
+            {"name": "Pec Deck / Machine Fly",      "tip": "Mind-muscle connection, slow negatives"},
+            {"name": "Push-Ups (Wide/Diamond)",     "tip": "Home या finisher के लिए, chest to floor"},
         ],
-        "youtube_search": "chest workout gym exercises",
+        "youtube_search": "chest workout gym exercises Hindi",
         "info": "💡 Big & Full Chest: Heavy Compound पहले, फिर Isolation। Upper chest पर extra focus दो।",
     },
     "🦵 Legs": {
@@ -292,72 +417,72 @@ MUSCLE_DATA = {
             {"name": "Standing Calf Raises",      "tip": "Full stretch at bottom + squeeze at top"},
             {"name": "Seated Calf Raises",        "tip": "Soleus muscle target, slow movement"},
         ],
-        "youtube_search": "leg workout gym exercises squats",
-        "info": "💡 Legs = Body का सबसे बड़ा muscle group। Skip मत करो! Quads, Hamstrings, Glutes और Calves — चारों को train करो।",
+        "youtube_search": "leg workout gym exercises squats Hindi",
+        "info": "💡 Legs = Body का सबसे बड़ा muscle group। Skip मत करो!",
     },
     "🏛️ Back": {
         "color": "#6366f1",
         "exercises": [
-            {"name": "Conventional Deadlift",         "tip": "Back flat, hips hinge, powerful pull from legs"},
-            {"name": "Pull-Ups (Wide Grip)",           "tip": "Full stretch at bottom, chin over bar, controlled negative"},
-            {"name": "Bent Over Barbell Row",          "tip": "Back parallel to floor, elbows back, squeeze shoulder blades"},
-            {"name": "Lat Pulldown (Wide Grip)",       "tip": "Chest up, bar को chest की तरफ लाओ, lats stretch"},
-            {"name": "Seated Cable Row",               "tip": "Neutral grip, shoulder blades strongly squeeze करो"},
-            {"name": "Single Arm Dumbbell Row",        "tip": "One knee on bench, big stretch + powerful pull"},
-            {"name": "Chest Supported T-Bar Row",      "tip": "Lower back strain कम, thickness के लिए excellent"},
-            {"name": "Face Pull",                      "tip": "Rear delts + upper back + traps के लिए best"},
-            {"name": "Straight Arm Pulldown",          "tip": "Lats isolation, arms straight रखो"},
-            {"name": "Shrugs (Dumbbell or Barbell)",   "tip": "Traps के लिए, full shrug + hold at top"},
+            {"name": "Conventional Deadlift",       "tip": "Back flat, hips hinge, powerful pull from legs"},
+            {"name": "Pull-Ups (Wide Grip)",         "tip": "Full stretch at bottom, chin over bar, controlled negative"},
+            {"name": "Bent Over Barbell Row",        "tip": "Back parallel to floor, elbows back, squeeze shoulder blades"},
+            {"name": "Lat Pulldown (Wide Grip)",     "tip": "Chest up, bar को chest की तरफ लाओ, lats stretch"},
+            {"name": "Seated Cable Row",             "tip": "Neutral grip, shoulder blades strongly squeeze करो"},
+            {"name": "Single Arm Dumbbell Row",      "tip": "One knee on bench, big stretch + powerful pull"},
+            {"name": "Chest Supported T-Bar Row",    "tip": "Lower back strain कम, thickness के लिए excellent"},
+            {"name": "Face Pull",                    "tip": "Rear delts + upper back + traps के लिए best"},
+            {"name": "Straight Arm Pulldown",        "tip": "Lats isolation, arms straight रखो"},
+            {"name": "Shrugs (Dumbbell or Barbell)", "tip": "Traps के लिए, full shrug + hold at top"},
         ],
-        "youtube_search": "back workout gym exercises deadlift",
-        "info": "💡 V-Taper बनाने के लिए: Wide Pull-Ups से Width, Bent Over Row से Thickness। Deadlift = king।",
+        "youtube_search": "back workout gym exercises deadlift Hindi",
+        "info": "💡 V-Taper बनाने के लिए: Wide Pull-Ups से Width, Bent Over Row से Thickness।",
     },
     "🏃 Cardio": {
         "color": "#a855f7",
         "exercises": [
-            {"name": "Treadmill Run",       "tip": "Incline 5-10% रखो, last 5 min speed बढ़ाओ"},
-            {"name": "HIIT Intervals",      "tip": "30s sprint + 30s rest, 90-100% effort sprint में दो"},
-            {"name": "Cycling",             "tip": "Medium resistance, steady pace maintain करो"},
-            {"name": "Jump Rope",           "tip": "Wrist से jump करो, low height jumps रखो"},
-            {"name": "Stair Climber",       "tip": "Rails पकड़ने से बचो, core tight रखो"},
-            {"name": "Rowing Machine",      "tip": "Legs first, then pull arms — full body cardio"},
-            {"name": "Battle Ropes",        "tip": "Core engaged, explosive waves, 30s on 30s off"},
+            {"name": "Treadmill Run",    "tip": "Incline 5-10% रखो, last 5 min speed बढ़ाओ"},
+            {"name": "HIIT Intervals",   "tip": "30s sprint + 30s rest, 90-100% effort sprint में दो"},
+            {"name": "Cycling",          "tip": "Medium resistance, steady pace maintain करो"},
+            {"name": "Jump Rope",        "tip": "Wrist से jump करो, low height jumps रखो"},
+            {"name": "Stair Climber",    "tip": "Rails पकड़ने से बचो, core tight रखो"},
+            {"name": "Rowing Machine",   "tip": "Legs first, then pull arms — full body cardio"},
+            {"name": "Battle Ropes",     "tip": "Core engaged, explosive waves, 30s on 30s off"},
         ],
-        "youtube_search": "cardio HIIT workout fat loss gym",
+        "youtube_search": "cardio HIIT workout fat loss gym Hindi",
         "info": "💡 Fat loss के लिए HIIT सबसे effective है। 3-4 दिन HIIT + बाकी दिन light cardio best।",
     },
     "🧘 Yoga": {
         "color": "#06b6d4",
         "exercises": [
-            {"name": "Sun Salutation",         "tip": "Slow controlled breathing, flow maintain करो"},
-            {"name": "Warrior Pose",           "tip": "Knee ankle के ऊपर रखो, hips aligned"},
-            {"name": "Downward Dog",           "tip": "Heels नीचे push करो, back straight रखो"},
-            {"name": "Plank to Chaturanga",    "tip": "Core tight रखो, elbows close to body"},
-            {"name": "Cobra Pose",             "tip": "Lower back से lift करो, shoulders relaxed"},
-            {"name": "Chair Pose",             "tip": "Weight heels पर रखो, knees stable"},
-            {"name": "Seated Forward Fold",    "tip": "Back straight रखो, धीरे stretch करो"},
-            {"name": "Child's Pose",           "tip": "Deep breathing, पूरी body relax करो"},
-            {"name": "Shavasana",              "tip": "Complete relaxation, mind calm रखो"},
+            {"name": "Sun Salutation",      "tip": "Slow controlled breathing, flow maintain करो"},
+            {"name": "Warrior Pose",        "tip": "Knee ankle के ऊपर रखो, hips aligned"},
+            {"name": "Downward Dog",        "tip": "Heels नीचे push करो, back straight रखो"},
+            {"name": "Plank to Chaturanga", "tip": "Core tight रखो, elbows close to body"},
+            {"name": "Cobra Pose",          "tip": "Lower back से lift करो, shoulders relaxed"},
+            {"name": "Chair Pose",          "tip": "Weight heels पर रखो, knees stable"},
+            {"name": "Seated Forward Fold", "tip": "Back straight रखो, धीरे stretch करो"},
+            {"name": "Child's Pose",        "tip": "Deep breathing, पूरी body relax करो"},
+            {"name": "Shavasana",           "tip": "Complete relaxation, mind calm रखो"},
         ],
-        "youtube_search": "yoga workout for gym recovery flexibility",
+        "youtube_search": "yoga workout gym recovery flexibility Hindi",
         "info": "💡 Yoga = Recovery + Flexibility + Strength + Mental Peace। Gym के बाद ये routine best है।",
     },
     "🥗 Diet & Nutrition": {
-       "color": "#10b981",
-       "exercises": [
-           {"name": "High Protein Breakfast",    "tip": "Eggs + Oats + Paneer — सुबह 30g protein लो"},
-           {"name": "Pre-Workout Meal",          "tip": "Banana + Peanut Butter — workout से 1hr पहले"},
-           {"name": "Post-Workout Nutrition",    "tip": "Whey Protein + Rice — workout के 30 min में"},
-           {"name": "Indian Bulking Diet",       "tip": "Dal + Chawal + Ghee + Chicken — calorie surplus"},
-           {"name": "Fat Loss Diet Plan",        "tip": "Deficit 300-500 cal, high protein, low sugar"},
-           {"name": "Vegetarian Protein Sources","tip": "Paneer, Tofu, Rajma, Soybean, Curd — daily लो"},
-           {"name": "Hydration Plan",            "tip": "3-4 लीटर पानी daily, workout में electrolytes"},
-           {"name": "Cheat Meal Strategy",       "tip": "हफ्ते में 1 cheat meal ठीक है — overdo मत करो"},
-       ],
-    "youtube_search": "Indian gym diet plan muscle building fat loss Hindi",
-    "info": "💡 Diet = Results का 70%। Gym कितना भी करो, खाना सही नहीं तो results नहीं।",
-   },
-   }
+        "color": "#10b981",
+        "exercises": [
+            {"name": "High Protein Breakfast",     "tip": "Eggs + Oats + Paneer — सुबह 30g protein लो"},
+            {"name": "Pre-Workout Meal",           "tip": "Banana + Peanut Butter — workout से 1hr पहले"},
+            {"name": "Post-Workout Nutrition",     "tip": "Whey Protein + Rice — workout के 30 min में"},
+            {"name": "Indian Bulking Diet",        "tip": "Dal + Chawal + Ghee + Chicken — calorie surplus"},
+            {"name": "Fat Loss Diet Plan",         "tip": "Deficit 300-500 cal, high protein, low sugar"},
+            {"name": "Vegetarian Protein Sources", "tip": "Paneer, Tofu, Rajma, Soybean, Curd — daily लो"},
+            {"name": "Hydration Plan",             "tip": "3-4 लीटर पानी daily, workout में electrolytes"},
+            {"name": "Cheat Meal Strategy",        "tip": "हफ्ते में 1 cheat meal ठीक है — overdo मत करो"},
+        ],
+        "youtube_search": "Indian gym diet plan muscle building fat loss Hindi",
+        "info": "💡 Diet = Results का 70%। Gym कितना भी करो, खाना सही नहीं तो results नहीं।",
+    },
+}
 
 # ─────────────────────────────────────────────
 # SESSION STATE DEFAULTS
@@ -379,15 +504,50 @@ defaults = {
     "rest_timer":     0,
     "body_weight":    70.0,
     "goal_weight":    65.0,
+    "gs_loaded":      False,   # Google Sheet एक बार load हुई या नहीं
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
+# Local JSON load (fallback)
 load_data()
 
 # ─────────────────────────────────────────────
-# SIDEBAR  (login removed, sidebar circle removed)
+# GOOGLE SHEET — startup load (सिर्फ एक बार)
+# ─────────────────────────────────────────────
+sheet_obj = get_sheet()
+if sheet_obj and not st.session_state.gs_loaded:
+    try:
+        ensure_worksheets(sheet_obj)
+
+        # Workout log
+        gs_log = gsheet_load_workouts()
+        if gs_log:
+            st.session_state.workout_log = gs_log
+
+        # Settings (body_weight, goal_weight, streak, last_workout)
+        gs_settings = gsheet_load_settings()
+        if gs_settings:
+            for key in ["body_weight", "goal_weight"]:
+                if key in gs_settings:
+                    st.session_state[key] = float(gs_settings[key])
+            if "streak" in gs_settings:
+                st.session_state.streak = int(gs_settings["streak"])
+            if "last_workout" in gs_settings:
+                st.session_state.last_workout = str(gs_settings["last_workout"])
+
+        # Weekly tracker
+        gs_weekly = gsheet_load_weekly()
+        if gs_weekly:
+            st.session_state.weekly = gs_weekly
+
+        st.session_state.gs_loaded = True
+    except Exception:
+        pass
+
+# ─────────────────────────────────────────────
+# SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
@@ -400,6 +560,26 @@ with st.sidebar:
         <div style='color:#475569;font-size:10px;margin-top:4px;'>Smart Fitness Dashboard</div>
     </div>
     """, unsafe_allow_html=True)
+
+    # Google Sheet status indicator
+    if sheet_obj:
+        st.markdown("""
+        <div style='text-align:center;background:#052e16;border:1px solid #166534;
+                    border-radius:8px;padding:6px;margin-bottom:10px;'>
+            <span style='color:#22c55e;font-size:12px;font-weight:700;'>
+                🟢 Google Sheet Connected
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style='text-align:center;background:#1c0a00;border:1px solid #92400e;
+                    border-radius:8px;padding:6px;margin-bottom:10px;'>
+            <span style='color:#f97316;font-size:12px;font-weight:700;'>
+                🟡 Local Storage Only
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("### 🏋️ Workout Menu")
     menu = st.radio("Select", list(MUSCLE_DATA.keys()), label_visibility="collapsed")
@@ -415,8 +595,8 @@ with st.sidebar:
     for grp, data in MUSCLE_DATA.items():
         d = sum(1 for ex in data["exercises"]
                 if st.session_state.checked.get(f"{grp}_{ex['name']}", False))
-        t = len(data["exercises"])
-        p = int((d / t) * 100)
+        t   = len(data["exercises"])
+        p   = int((d / t) * 100)
         clr = data["color"]
         st.markdown(f"""
         <div style='margin-bottom:7px;'>
@@ -491,7 +671,7 @@ st.info(muscle["info"])
 # ─────────────────────────────────────────────
 # TABS
 # ─────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["🏋️ Workout", "📊 Log & Stats", "🤖 AI Coach"])
+tab1, tab2, tab3, tab4 = st.tabs(["🏋️ Workout", "📊 Log & Stats", "🤖 AI Coach", "📈 Body History"])
 
 # ══════════════════════════════════════════
 # TAB 1 — WORKOUT
@@ -499,7 +679,6 @@ tab1, tab2, tab3 = st.tabs(["🏋️ Workout", "📊 Log & Stats", "🤖 AI Coac
 with tab1:
     col_ex, col_right = st.columns([3, 2])
 
-    # ── Exercise List ──
     with col_ex:
         st.markdown("### Exercise List")
         st.caption("⚖️ पहले weight डालो → फिर ✅ tick करो")
@@ -516,7 +695,6 @@ with tab1:
 
             with col_chk:
                 checked = st.checkbox("", value=is_done, key=f"cb_{key}")
-
                 if checked != is_done:
                     wt_val = st.session_state.get(f"wt_{key}", 0.0)
                     if checked and wt_val == 0:
@@ -527,7 +705,7 @@ with tab1:
                             now   = datetime.now()
                             today = now.strftime("%d-%m-%Y")
                             if st.session_state.last_workout != today:
-                                st.session_state.streak += 1
+                                st.session_state.streak      += 1
                                 st.session_state.last_workout = today
                             today_day = now.strftime("%a")
                             if today_day in st.session_state.weekly:
@@ -543,6 +721,8 @@ with tab1:
                             st.session_state.workout_log.insert(0, entry)
                             st.session_state.rest_timer = 60
                             save_data()
+                            # Google Sheet में भी save करो
+                            gsheet_save_workout(entry)
                             st.toast(f"✅ {ex['name']} logged! 💪", icon="🔥")
                         st.rerun()
 
@@ -566,16 +746,17 @@ with tab1:
 
         st.markdown("---")
 
-        # ── YouTube Search Suggestions (replaces fixed embed) ──
+        # YouTube Section
         st.markdown("### 🎥 YouTube Video Guide")
-        yt_query = muscle["youtube_search"].replace(" ", "+")
+        yt_query      = muscle["youtube_search"].replace(" ", "+")
         yt_search_url = f"https://www.youtube.com/results?search_query={yt_query}"
 
         st.markdown(f"""
-        <div style='background:#0d1117;border:1px solid #1e2d40;border-radius:14px;padding:20px;text-align:center;'>
+        <div style='background:#0d1117;border:1px solid #1e2d40;border-radius:14px;
+                    padding:20px;text-align:center;'>
             <div style='font-size:40px;margin-bottom:8px;'>▶️</div>
             <div style='color:#e2e8f0;font-size:16px;font-weight:700;margin-bottom:6px;'>
-                {menu} Workout Videos
+                {menu} Videos
             </div>
             <div style='color:#64748b;font-size:13px;margin-bottom:16px;'>
                 YouTube पर best workout videos देखो
@@ -590,40 +771,34 @@ with tab1:
         </div>
         """, unsafe_allow_html=True)
 
-        # Quick video suggestions with clickable links
         st.markdown("**⚡ Quick Searches:**")
+        menu_name = menu.split(' ', 1)[1] if ' ' in menu else menu
         suggestions = [
-            f"{menu.split(' ',1)[1] if ' ' in menu else menu} workout for beginners",
-            f"Best {menu.split(' ',1)[1] if ' ' in menu else menu} exercises gym",
-            f"{menu.split(' ',1)[1] if ' ' in menu else menu} muscle building tips",
+            f"{menu_name} workout for beginners Hindi",
+            f"Best {menu_name} exercises gym",
+            f"{menu_name} diet plan Indian",
+            f"Indian gym diet nutrition tips Hindi",
         ]
         for s in suggestions:
             encoded = s.replace(" ", "+")
             st.markdown(f"🔗 [{s}](https://www.youtube.com/results?search_query={encoded})")
 
-    # ── RIGHT COLUMN ──
+    # RIGHT COLUMN
     with col_right:
 
-        # ── STOPWATCH (fixed — uses real timestamps) ──
+        # STOPWATCH
         st.markdown("### ⏱️ Stopwatch")
-
-        # Calculate current display time
         if st.session_state.sw_running:
             elapsed_now = st.session_state.sw_accumulated + (time.time() - st.session_state.sw_start_ts)
         else:
             elapsed_now = st.session_state.sw_accumulated
 
         total_secs = int(elapsed_now)
-        sw_h  = total_secs // 3600
-        sw_m  = (total_secs % 3600) // 60
-        sw_s  = total_secs % 60
-
-        if sw_h > 0:
-            sw_display = f"{sw_h:02}:{sw_m:02}:{sw_s:02}"
-        else:
-            sw_display = f"{sw_m:02}:{sw_s:02}"
-
-        sw_color = "#22c55e" if st.session_state.sw_running else "#e2e8f0"
+        sw_h = total_secs // 3600
+        sw_m = (total_secs % 3600) // 60
+        sw_s = total_secs % 60
+        sw_display = f"{sw_h:02}:{sw_m:02}:{sw_s:02}" if sw_h > 0 else f"{sw_m:02}:{sw_s:02}"
+        sw_color   = "#22c55e" if st.session_state.sw_running else "#e2e8f0"
 
         st.markdown(f"""
         <div class='glass' style='text-align:center;padding:20px;'>
@@ -641,8 +816,8 @@ with tab1:
         with sw1:
             if st.button("▶️ Start", use_container_width=True, key="sw_start"):
                 if not st.session_state.sw_running:
-                    st.session_state.sw_running   = True
-                    st.session_state.sw_start_ts  = time.time()
+                    st.session_state.sw_running  = True
+                    st.session_state.sw_start_ts = time.time()
                 st.rerun()
         with sw2:
             if st.button("⏸ Pause", use_container_width=True, key="sw_pause"):
@@ -657,16 +832,14 @@ with tab1:
                 st.session_state.sw_start_ts    = 0.0
                 st.rerun()
 
-        # Auto-refresh when running
         if st.session_state.sw_running:
             time.sleep(1)
             st.rerun()
 
         st.markdown("---")
 
-        # ── REST TIMER ──
+        # REST TIMER
         st.markdown("### 💤 Rest Timer")
-
         rest_val = st.session_state.rest_timer
         rest_clr = "#22c55e" if rest_val > 30 else ("#f97316" if rest_val > 0 else "#475569")
 
@@ -687,14 +860,13 @@ with tab1:
             if st.button("60s", use_container_width=True): st.session_state.rest_timer = 60; st.rerun()
         with r3:
             if st.button("90s", use_container_width=True): st.session_state.rest_timer = 90; st.rerun()
-
         if rest_val > 0:
             if st.button("⏹ Stop Rest", use_container_width=True):
                 st.session_state.rest_timer = 0; st.rerun()
 
         st.markdown("---")
 
-        # ── WEEKLY TRACKER ──
+        # WEEKLY TRACKER
         st.markdown("### 📅 इस हफ्ते")
         cols7 = st.columns(7)
         for i, (day, hindi) in enumerate(days_hindi.items()):
@@ -712,7 +884,9 @@ with tab1:
                 """, unsafe_allow_html=True)
                 if st.button("", key=f"day_{day}", help=day):
                     st.session_state.weekly[day] = not val
-                    save_data(); st.rerun()
+                    save_data()
+                    gsheet_save_weekly(st.session_state.weekly)
+                    st.rerun()
 
         gym_days = sum(1 for v in st.session_state.weekly.values() if v)
         st.markdown(f"""
@@ -723,7 +897,7 @@ with tab1:
 
         st.markdown("---")
 
-        # ── QUICK STATS ──
+        # QUICK STATS
         st.markdown("### 📈 Quick Stats")
         today_str = date.today().strftime("%d-%m-%Y")
         s1, s2 = st.columns(2)
@@ -736,7 +910,7 @@ with tab1:
 
         st.markdown("---")
 
-        # ── BODY STATS ──
+        # BODY STATS
         st.markdown("### ⚖️ Body Stats")
         bw = st.number_input("वजन (kg):", min_value=30.0, max_value=200.0,
                              value=float(st.session_state.body_weight), step=0.5,
@@ -748,12 +922,18 @@ with tab1:
             st.session_state.body_weight = bw
             st.session_state.goal_weight = gw
             save_data()
-            st.success("✅ Saved!")
+            # Google Sheet में save करो
+            ok = gsheet_save_body_stats(bw, gw)
+            gsheet_save_weekly(st.session_state.weekly)
+            if ok:
+                st.success("✅ Saved! (Local + Google Sheet)")
+            else:
+                st.success("✅ Saved! (Local only)")
 
         if bw > 0:
             bmi     = bw / (1.70 ** 2)
             bmi_cat = ("Underweight" if bmi < 18.5
-                       else "Normal" if bmi < 25
+                       else "Normal"    if bmi < 25
                        else "Overweight" if bmi < 30
                        else "Obese")
             bmi_clr = ("#22c55e" if bmi_cat == "Normal"
@@ -783,7 +963,7 @@ with tab1:
 
         st.markdown("---")
 
-        # ── GYM MUSIC ──
+        # GYM MUSIC
         st.markdown("### 🎧 Gym Music")
         music_choice = st.selectbox("Select:", ["Off", "🔥 Motivation", "💪 Hard Mix", "🎧 EDM"],
                                     key="music_sel")
@@ -824,7 +1004,6 @@ with tab2:
 
         st.markdown("---")
         st.markdown("### 📋 Recent Workout Log")
-
         for row in st.session_state.workout_log[:5]:
             st.markdown(f"""
             <div class='glass' style='display:flex;align-items:center;gap:12px;'>
@@ -838,12 +1017,12 @@ with tab2:
         with st.expander("📋 Full Log Table देखो"):
             st.dataframe(df, use_container_width=True, hide_index=True,
                          column_config={
-                             "Date":        st.column_config.TextColumn("📅 Date",    width="small"),
-                             "Time":        st.column_config.TextColumn("⏰ Time",    width="small"),
-                             "Body Part":   st.column_config.TextColumn("💪 Part",    width="medium"),
-                             "Exercise":    st.column_config.TextColumn("🏋️ Exercise",width="large"),
-                             "Weight (kg)": st.column_config.NumberColumn("⚖️ kg",    width="small"),
-                             "Status":      st.column_config.TextColumn("✅ Status",  width="small"),
+                             "Date":        st.column_config.TextColumn("📅 Date",     width="small"),
+                             "Time":        st.column_config.TextColumn("⏰ Time",     width="small"),
+                             "Body Part":   st.column_config.TextColumn("💪 Part",     width="medium"),
+                             "Exercise":    st.column_config.TextColumn("🏋️ Exercise", width="large"),
+                             "Weight (kg)": st.column_config.NumberColumn("⚖️ kg",     width="small"),
+                             "Status":      st.column_config.TextColumn("✅ Status",   width="small"),
                          })
 
         st.markdown("---")
@@ -911,7 +1090,9 @@ with tab2:
         <div style='text-align:center;padding:60px;color:#334155;'>
             <div style='font-size:48px;'>📋</div>
             <div style='font-size:18px;margin-top:12px;color:#475569;'>अभी कोई log नहीं है</div>
-            <div style='font-size:13px;color:#1e2d40;margin-top:6px;'>Workout tab → exercises tick करो 💪</div>
+            <div style='font-size:13px;color:#1e2d40;margin-top:6px;'>
+                Workout tab → exercises tick करो 💪
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1014,9 +1195,64 @@ with tab3:
 - हर exercise में 5% weight बढ़ाओ
 - Protein: 1.6g per kg body weight
 - नींद: 7-8 घंटे
-
-🔥 **Key Rules:**
-- Compound moves first (Squat, Deadlift, Bench)
-- Hydration: 3L water daily
-- Recovery उतना ही important है
             """)
+
+# ══════════════════════════════════════════
+# TAB 4 — BODY HISTORY (नया Tab!)
+# ══════════════════════════════════════════
+with tab4:
+    st.markdown("### 📈 Body Weight & BMI History")
+
+    if sheet_obj:
+        history_data = gsheet_load_body_stats_history()
+        if history_data:
+            df_body = pd.DataFrame(history_data)
+            df_body["Date"] = pd.to_datetime(df_body["Date"], dayfirst=True)
+            df_body = df_body.sort_values("Date")
+
+            # Weight Chart
+            st.markdown("#### ⚖️ Weight Progress")
+            st.line_chart(df_body.set_index("Date")[["Body Weight", "Goal Weight"]])
+
+            # BMI Chart
+            st.markdown("#### 🩺 BMI History")
+            st.line_chart(df_body.set_index("Date")["BMI"])
+
+            # Summary
+            latest = df_body.iloc[-1]
+            first  = df_body.iloc[0]
+            lost   = round(float(first["Body Weight"]) - float(latest["Body Weight"]), 1)
+
+            h1, h2, h3 = st.columns(3)
+            with h1: st.metric("📅 शुरुआत",   f"{first['Body Weight']} kg")
+            with h2: st.metric("📅 अभी",       f"{latest['Body Weight']} kg")
+            with h3: st.metric("📉 Change",    f"{lost:+.1f} kg",
+                               delta_color="inverse")
+
+            st.markdown("---")
+            with st.expander("📋 Full History Table"):
+                st.dataframe(df_body, use_container_width=True, hide_index=True)
+        else:
+            st.info("अभी कोई body stats नहीं हैं। Workout tab → Body Stats → Save Stats दबाओ।")
+    else:
+        st.warning("""
+        ⚠️ Google Sheet connect नहीं है।
+        Body history देखने के लिए Streamlit Secrets में credentials add करो।
+        """)
+        st.markdown("""
+        <div class='glass'>
+            <b>📋 Google Sheet Setup Steps:</b><br><br>
+            <b>1.</b> Google Cloud Console पर जाओ → Service Account बनाओ<br>
+            <b>2.</b> JSON key download करो<br>
+            <b>3.</b> Streamlit Secrets में यह add करो:<br><br>
+            <code style='color:#60a5fa;'>
+            SHEET_ID = "your_sheet_id"<br><br>
+            [gcp_service_account]<br>
+            type = "service_account"<br>
+            project_id = "..."<br>
+            private_key = "..."<br>
+            client_email = "...@....iam.gserviceaccount.com"<br>
+            </code><br>
+            <b>4.</b> उस email को Google Sheet में Editor access दो
+        </div>
+        """, unsafe_allow_html=True)
