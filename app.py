@@ -780,6 +780,95 @@ if sheet_obj and not st.session_state.gs_loaded:
 # SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
+    st.markdown("### 🎨 App Theme")
+    theme_choice = st.radio(
+        "थीम चुनें",
+        ["🌙 Dark", "☀️ Light"],
+        horizontal=True,
+        key="gym_theme_choice",
+        label_visibility="collapsed"
+    )
+    is_light_theme = theme_choice == "☀️ Light"
+    if is_light_theme:
+        st.markdown("""
+        <style>
+        :root { color-scheme: light; }
+        .stApp {
+            background: linear-gradient(145deg,#f4f7fb 0%,#eaf0f8 55%,#f8fafc 100%) !important;
+            color: #172033 !important;
+        }
+        [data-testid="stHeader"] { background:rgba(244,247,251,.94) !important; }
+        [data-testid="stSidebar"] {
+            background:linear-gradient(180deg,#ffffff 0%,#eef3f9 100%) !important;
+            border-right:1px solid #d4deeb !important;
+        }
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+            color:#334155 !important;
+        }
+        /* Limit light text overrides to Streamlit-generated text, not custom dark workout cards. */
+        [data-testid="stMainBlockContainer"] > div > div > div > p,
+        [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > p,
+        [data-testid="stMainBlockContainer"] [data-testid="stCaptionContainer"],
+        [data-testid="stMainBlockContainer"] label,
+        [data-testid="stMainBlockContainer"] li {
+            color:#263449 !important;
+        }
+        [data-testid="stMainBlockContainer"] h1,
+        [data-testid="stMainBlockContainer"] h2,
+        [data-testid="stMainBlockContainer"] h3,
+        [data-testid="stMainBlockContainer"] h4,
+        [data-testid="stMainBlockContainer"] h5 {
+            color:#172033 !important;
+            text-shadow:none !important;
+        }
+        [data-testid="stMetric"] {
+            background:linear-gradient(145deg,#ffffff,#f0f5fb) !important;
+            border:1px solid #d3deeb !important;
+            box-shadow:0 5px 16px rgba(31,55,86,.07) !important;
+        }
+        [data-testid="stMetricLabel"] { color:#475569 !important; }
+        [data-testid="stMetricValue"] { color:#0f172a !important; }
+        .stButton > button, [data-testid="stDownloadButton"] button {
+            background:linear-gradient(120deg,#0f766e,#1d4ed8) !important;
+            color:#ffffff !important;
+            border:1px solid #b8d6e7 !important;
+        }
+        .stTextInput input, .stTextArea textarea, .stNumberInput input,
+        [data-baseweb="select"] > div {
+            background:#ffffff !important;
+            color:#172033 !important;
+            border-color:#b8c7d9 !important;
+        }
+        .stTextInput input::placeholder, .stTextArea textarea::placeholder {
+            color:#64748b !important;
+        }
+        .stTabs [data-baseweb="tab"] { color:#475569 !important; }
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            color:#0f766e !important;
+            border-bottom-color:#0f766e !important;
+        }
+        [data-testid="stExpander"] {
+            background:#ffffff !important;
+            border:1px solid #d3deeb !important;
+        }
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] summary p { color:#172033 !important; }
+        [data-testid="stAlert"] { color:#172033 !important; }
+        [data-testid="stDataFrame"], [data-testid="stTable"] {
+            border:1px solid #d3deeb !important;
+        }
+        hr { border-color:#d3deeb !important; }
+        .glass {
+            background:linear-gradient(145deg,#ffffff,#f1f5fb) !important;
+            border:1px solid #d3deeb !important;
+            box-shadow:0 6px 20px rgba(31,55,86,.06) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
     st.markdown("""
     <div style='text-align:center;padding:10px 0 20px;'>
         <div style='font-size:38px;'>⚡</div>
