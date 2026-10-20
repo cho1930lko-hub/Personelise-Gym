@@ -686,6 +686,12 @@ with st.sidebar:
         (i for i, group in enumerate(available_groups) if group == recommended_group),
         0
     )
+    # Refresh the suggested selection when the calendar day changes; preserve manual
+    # selection during the same day.
+    today_key = date.today().isoformat()
+    if st.session_state.get("daily_workout_date") != today_key:
+        st.session_state["daily_workout_group"] = recommended_group
+        st.session_state["daily_workout_date"] = today_key
 
     st.markdown("### 📅 आज का Workout Plan")
     st.markdown(f"""
