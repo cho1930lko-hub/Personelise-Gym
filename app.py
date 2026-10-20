@@ -197,6 +197,44 @@ hr { border-color: #1e2d40 !important; }
 }
 
 
+/* PHASE 5 — weekly plan, progress, body stats and history */
+.weekly-day-card {
+    min-height: 54px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    box-sizing: border-box;
+}
+[data-testid="stMainBlockContainer"] .weekly-day-card + div [data-testid="stButton"] > button {
+    min-height: 34px !important;
+    padding: .15rem .35rem !important;
+    font-size: 13px !important;
+}
+.body-progress-card {
+    border-radius: 15px !important;
+    padding: 16px !important;
+    margin-top: 10px;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stDataFrame"] {
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+    border-radius: 12px !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stDataFrame"] [role="columnheader"] {
+    font-weight: 700 !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stMetric"] {
+    overflow-wrap: anywhere;
+}
+@media (max-width: 768px) {
+    .weekly-day-card { min-height: 48px; padding: 5px 1px !important; }
+    .body-progress-card { padding: 13px !important; }
+    [data-testid="stMainBlockContainer"] [data-testid="stDataFrame"] {
+        font-size: 13px !important;
+    }
+}
 /* PHASE 4 — timer and quick-stats visual system */
 .timer-card {
     width: 100%;
@@ -1452,15 +1490,17 @@ with tab1:
                 else:
                     bg_day = "#1e2d40"
                     tc = "#64748b"
+                mark_color = "#0f172a" if val else tc
                 st.markdown(f"""
-                <div style='background:{bg_day};border-radius:8px;padding:6px 2px;
-                            text-align:center;
-                            box-shadow:{"0 0 8px "+color+"66" if val else "none"};'>
-                    <div style='font-size:9px;font-weight:700;color:{tc};'>{hindi}</div>
-                    <div style='font-size:13px;'>{"✓" if val else "·"}</div>
+                <div class='glass weekly-day-card' style='background:{bg_day};border-radius:10px;
+                            padding:7px 2px;text-align:center;
+                            border:1px solid {"#94a3b8" if is_light_theme and not val else color};
+                            box-shadow:{"0 0 8px "+color+"44" if val else "none"};'>
+                    <div style='font-size:10px;font-weight:700;color:{tc};'>{hindi}</div>
+                    <div style='font-size:15px;font-weight:800;color:{mark_color};'>{"✓" if val else "·"}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button("", key=f"day_{day}", help=day):
+                if st.button("✓" if val else "+", key=f"day_{day}", help=f"{day} को {'अनमार्क' if val else 'मार्क'} करें"):
                     st.session_state.weekly[day] = not val
                     local_ok = save_data()
                     sheet_ok = gsheet_save_weekly(st.session_state.weekly)
@@ -1543,20 +1583,26 @@ with tab1:
                        else "#60a5fa")
             diff = abs(bw - gw)
             prog = max(0, min(100, int((1 - diff / max(bw, gw)) * 100)))
+            body_text = "#334155" if is_light_theme else "#94a3b8"
+            body_heading = "#172033" if is_light_theme else "#f1f5f9"
+            progress_track = "#dbe5f0" if is_light_theme else "#1e2d40"
+            goal_color = "#15803d" if is_light_theme else "#22c55e"
+            remaining_color = "#b91c1c" if is_light_theme else "#ef4444"
             st.markdown(f"""
-            <div class='glass'>
-                <div style='font-size:13px;color:#94a3b8;'>
-                    BMI estimate (assuming height 1.70 m): <b style='color:{bmi_clr};'>{bmi:.1f} ({bmi_cat})</b>
+            <div class='glass body-progress-card'>
+                <div style='font-size:13px;color:{body_text};'>
+                    BMI estimate (assuming height 1.70 m):
+                    <b style='color:{bmi_clr};'>{bmi:.1f} ({bmi_cat})</b>
                 </div>
-                <div style='font-size:13px;color:#94a3b8;margin-top:4px;'>
-                    Goal: <b style='color:#22c55e;'>{gw} kg</b>
-                    &nbsp;|&nbsp; बचा: <b style='color:#ef4444;'>{diff:.1f} kg</b>
+                <div style='font-size:13px;color:{body_text};margin-top:6px;'>
+                    Goal: <b style='color:{goal_color};'>{gw} kg</b>
+                    &nbsp;|&nbsp; बचा: <b style='color:{remaining_color};'>{diff:.1f} kg</b>
                 </div>
-                <div style='background:#1e2d40;border-radius:99px;height:6px;margin-top:10px;'>
-                    <div style='width:{prog}%;height:100%;background:#22c55e;
+                <div style='background:{progress_track};border-radius:99px;height:8px;margin-top:12px;overflow:hidden;'>
+                    <div style='width:{prog}%;height:100%;background:{goal_color};
                                 border-radius:99px;transition:width 0.5s;'></div>
                 </div>
-                <div style='font-size:11px;color:#475569;margin-top:4px;'>
+                <div style='font-size:12px;color:{body_heading};margin-top:6px;font-weight:700;'>
                     Goal Progress: {prog}%
                 </div>
             </div>
