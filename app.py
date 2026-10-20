@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import os
 import time
+import re
 from datetime import datetime, date
 
 # ─────────────────────────────────────────────
@@ -216,36 +217,46 @@ def ask_ai(question, log_data):
     if not AI_ENABLED:
         return "⚠️ AI offline — Streamlit Secrets में GROQ_API_KEY add करो।"
     try:
-        history = "\n".join([
-            f"Date:{l['Date']} | {l['Body Part']} | {l['Exercise']} | {l.get('Weight (kg)',0)}kg"
-            for l in log_data[:20]
-        ])
+        history_rows = []
+        for log in log_data[:30]:
+            status = str(log.get("Status", ""))
+            reps_match = re.search(r"(\d+)\s*reps", status, flags=re.IGNORECASE)
+            set_match = re.search(r"Set\s+(\d+)\s*/\s*(\d+)", status, flags=re.IGNORECASE)
+            reps_text = f", {reps_match.group(1)} reps" if reps_match else ""
+            set_text = f", set {set_match.group(1)}/{set_match.group(2)}" if set_match else ""
+            history_rows.append(
+                f"Date:{log.get('Date','?')} | {log.get('Body Part','?')} | "
+                f"{log.get('Exercise','?')} | {log.get('Weight (kg)',0)}kg"
+                f"{reps_text}{set_text}"
+            )
+        history = "\n".join(history_rows)
         bw          = st.session_state.get("body_weight", 70)
         gw          = st.session_state.get("goal_weight", 65)
         streak      = st.session_state.get("streak", 0)
         weekly_days = sum(1 for v in st.session_state.get("weekly", {}).values() if v)
 
         prompt = f"""
-You are an expert personal gym trainer and nutritionist.
+You are a practical, safety-conscious personal gym coach.
 
 USER PROFILE:
 - Current Weight: {bw} kg
 - Goal Weight: {gw} kg
 - Current Streak: {streak} days
 - Days trained this week: {weekly_days}/7
-- Goal type: {"Fat Loss" if gw < bw else "Muscle Gain"}
+- Goal direction by weight only: {"weight loss" if gw < bw else "weight gain/maintenance"}
+- Remember: weight alone cannot establish body composition or whether weight loss is medically appropriate.
 
-RECENT WORKOUT HISTORY (last 20 sessions):
-{history if history else 'No history yet — beginner user'}
+RECENT WORKOUT LOG (up to 30 entries; reps/set numbers may be absent in legacy rows):
+{history if history else 'No workout history yet — ask about experience and available equipment before prescribing a detailed plan.'}
 
-YOUR JOB:
-- Analyze their actual data above
-- Give PERSONALIZED advice based on their weight, goal, streak, history
-- Point out what muscle groups they are MISSING or OVERTRAINING
-- Suggest specific weights to increase based on their logs
-- Give advice in Hindi + English mix
-- Max 150 words, use bullet points
-- Do NOT give generic advice — be SPECIFIC to their data
+COACHING RULES:
+- Use the actual history; distinguish logged facts from assumptions and say when data is insufficient.
+- Where set/reps exist, discuss performance trends. Never invent missing sets, reps, body measurements, or personal details.
+- Do not automatically recommend adding 5% weight every session. Recommend gradual progression only when current sets/reps are completed with controlled technique and without pain.
+- Include recovery/rest days and avoid training the same muscle hard on consecutive days.
+- Give general fitness/nutrition guidance, not medical diagnosis; advise a clinician for injuries, chest pain, faintness, or relevant medical concerns.
+- Respond in simple Hindi + English mix, at most 150 words, with concise bullets.
+- Avoid extreme diets, unsafe weight-loss promises, and unsupported predictions.
 """
         response = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -257,8 +268,8 @@ YOUR JOB:
             temperature=0.8
         )
         return response.choices[0].message.content
-    except Exception as e:
-        return f"❌ AI Error: {str(e)}"
+    except Exception:
+        return "⚠️ AI Coach अभी जवाब नहीं दे पाया। थोड़ी देर बाद फिर कोशिश करें और Streamlit/Groq connection settings जाँचें।"
 
 # ─────────────────────────────────────────────
 # GOOGLE SHEETS SETUP
