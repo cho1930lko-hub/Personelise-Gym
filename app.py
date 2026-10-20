@@ -153,6 +153,48 @@ hr { border-color: #1e2d40 !important; }
     .stTabs [data-baseweb="tab"] { font-size: 11px !important; padding: 7px 6px !important; }
     [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
 }
+
+/* Workout-focused responsive polish */
+[data-testid="stMainBlockContainer"] h3 {
+    overflow-wrap: anywhere;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stCheckbox"] {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stNumberInput"] input {
+    min-height: 42px;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stTabs"] {
+    margin-top: .5rem;
+}
+@media (max-width: 768px) {
+    /* Allow each Streamlit column group to use the available width. */
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"] {
+        gap: .55rem !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+        min-width: 0 !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stMetric"] {
+        border-radius: 12px !important;
+        overflow-wrap: anywhere;
+    }
+    [data-testid="stMainBlockContainer"] .glass {
+        margin-bottom: .7rem;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stCheckbox"] label {
+        padding: 6px 0 !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stNumberInput"] button {
+        min-width: 28px !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stAlert"] {
+        padding: .7rem !important;
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
