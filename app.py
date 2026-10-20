@@ -669,8 +669,55 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
 
+    # Weekly split: recommend a different focus each day, while allowing manual override.
+    weekly_split = [
+        ("Chest", "🫁 Chest", "Push movements; chest-focused session"),
+        ("Back", "🏛️ Back", "Pull movements; back-focused session"),
+        ("Legs", "🦵 Legs", "Quads, hamstrings and glutes"),
+        ("Shoulders", "🏔️ Shoulders", "Shoulders and controlled accessory work"),
+        ("Biceps", "💪 Biceps", "Biceps and arm isolation"),
+        ("Triceps", "🔱 Triceps", "Triceps and arm isolation"),
+        ("Recovery", "🧘 Yoga", "Yoga, mobility or active recovery"),
+    ]
+    day_index = datetime.now().weekday()
+    day_label, recommended_group, day_tip = weekly_split[day_index]
+    available_groups = list(MUSCLE_DATA.keys())
+    default_index = next(
+        (i for i, group in enumerate(available_groups) if group == recommended_group),
+        0
+    )
+    # Refresh the suggested selection when the calendar day changes; preserve manual
+    # selection during the same day.
+    today_key = date.today().isoformat()
+    if st.session_state.get("daily_workout_date") != today_key:
+        st.session_state["daily_workout_group"] = recommended_group
+        st.session_state["daily_workout_date"] = today_key
+
+    st.markdown("### 📅 आज का Workout Plan")
+    st.markdown(f"""
+    <div style='background:linear-gradient(135deg,#10233b,#172554);
+                border:1px solid #31527a;border-radius:12px;padding:12px;margin-bottom:10px;'>
+        <div style='font-size:12px;color:#93c5fd;font-weight:700;letter-spacing:1px;'>
+            {datetime.now().strftime("%A").upper()} • WEEKLY SPLIT
+        </div>
+        <div style='font-size:21px;font-weight:800;color:#f8fafc;margin:5px 0;'>
+            {recommended_group}
+        </div>
+        <div style='font-size:12px;color:#cbd5e1;'>{day_tip}</div>
+        <div style='font-size:11px;color:#93c5fd;margin-top:7px;'>
+            हर दिन अलग focus • अपनी सुविधा से group बदल सकते हो
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("### 🏋️ Workout Menu")
-    menu = st.radio("Select", list(MUSCLE_DATA.keys()), label_visibility="collapsed")
+    menu = st.radio(
+        "आज का muscle group चुनें",
+        available_groups,
+        index=default_index,
+        label_visibility="collapsed",
+        key="daily_workout_group"
+    )
 
     st.markdown("---")
     total_done = sum(1 for v in st.session_state.checked.values() if v)
