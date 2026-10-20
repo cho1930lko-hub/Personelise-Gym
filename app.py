@@ -197,6 +197,70 @@ hr { border-color: #1e2d40 !important; }
 }
 
 
+/* PHASE 4 — timer and quick-stats visual system */
+.timer-card {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 18px !important;
+    border: 1px solid var(--gym-border, #2a3d59) !important;
+    background: linear-gradient(145deg, var(--gym-surface-raised, #142238), var(--gym-surface, #101a2b)) !important;
+    box-shadow: 0 8px 22px rgba(0,0,0,.12);
+    min-height: 112px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.timer-card > div:first-child {
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+.timer-card > div:last-child {
+    color: var(--gym-muted, #b2c0d4) !important;
+    font-size: 12px !important;
+    letter-spacing: .2px;
+}
+.stopwatch-card > div:first-child {
+    font-size: clamp(30px, 4vw, 42px) !important;
+    letter-spacing: 2px !important;
+}
+.rest-timer-card > div:first-child {
+    font-size: clamp(28px, 3.5vw, 36px) !important;
+    letter-spacing: 1px !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stMetric"] {
+    min-width: 0 !important;
+    overflow: hidden;
+    border-radius: 14px !important;
+    padding: 12px !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stMetricLabel"] {
+    line-height: 1.3 !important;
+    overflow-wrap: anywhere;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stMetricValue"] {
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stButton"] > button {
+    min-height: 44px !important;
+    white-space: normal !important;
+    line-height: 1.2 !important;
+}
+@media (max-width: 768px) {
+    .timer-card { min-height: 100px; padding: 16px !important; }
+    .stopwatch-card > div:first-child { font-size: 34px !important; }
+    .rest-timer-card > div:first-child { font-size: 30px !important; }
+    [data-testid="stMainBlockContainer"] [data-testid="stMetric"] { padding: 10px !important; }
+    [data-testid="stMainBlockContainer"] [data-testid="stMetricValue"] { font-size: 1.25rem !important; }
+}
+@media (max-width: 420px) {
+    .timer-card { min-height: 92px; padding: 12px !important; }
+    .stopwatch-card > div:first-child { font-size: 30px !important; letter-spacing: 1px !important; }
+    .rest-timer-card > div:first-child { font-size: 27px !important; }
+    [data-testid="stMainBlockContainer"] [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
+}
+
 /* PHASE 3 — exercise cards and set-entry controls */
 [data-testid="stMainBlockContainer"] [data-testid="stExpander"] {
     border-radius: 14px !important;
@@ -1305,10 +1369,10 @@ with tab1:
         sw_m = (total_secs % 3600) // 60
         sw_s = total_secs % 60
         sw_display = f"{sw_h:02}:{sw_m:02}:{sw_s:02}" if sw_h > 0 else f"{sw_m:02}:{sw_s:02}"
-        sw_color   = "#22c55e" if st.session_state.sw_running else "#e2e8f0"
+        sw_color   = "#22c55e" if st.session_state.sw_running else ("#172033" if is_light_theme else "#e2e8f0")
 
         st.markdown(f"""
-        <div class='glass' style='text-align:center;padding:20px;'>
+        <div class='glass timer-card stopwatch-card' style='text-align:center;padding:20px;'>
             <div style='font-size:42px;font-weight:900;color:{sw_color};
                         font-family:"Exo 2",sans-serif;letter-spacing:3px;'>
                 {sw_display}
@@ -1351,7 +1415,7 @@ with tab1:
         rest_clr = "#22c55e" if rest_val > 30 else ("#f97316" if rest_val > 0 else "#475569")
 
         st.markdown(f"""
-        <div class='glass' style='text-align:center;padding:18px;'>
+        <div class='glass timer-card rest-timer-card' style='text-align:center;padding:18px;'>
             <div style='font-size:36px;font-weight:900;color:{rest_clr};
                         font-family:"Exo 2",sans-serif;letter-spacing:2px;'>
                 {rest_val:02}s
