@@ -1103,6 +1103,29 @@ with st.sidebar:
             box-shadow: 0 0 0 2px var(--gym-focus-ring) !important;
         }
         hr { border-color: var(--gym-border) !important; }
+        /* Force readable foregrounds on headings and tab labels in Light Theme. */
+        [data-testid="stMainBlockContainer"] h1,
+        [data-testid="stMainBlockContainer"] h2,
+        [data-testid="stMainBlockContainer"] h3,
+        [data-testid="stMainBlockContainer"] h4,
+        [data-testid="stMainBlockContainer"] h5,
+        [data-testid="stMainBlockContainer"] h6,
+        [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h1,
+        [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h2,
+        [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h3 {
+            color: #172033 !important;
+            -webkit-text-fill-color: #172033 !important;
+            text-shadow: none !important;
+        }
+        [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMainBlockContainer"] [data-testid="stCaptionContainer"],
+        [data-testid="stMainBlockContainer"] label {
+            color: #334155 !important;
+        }
+        [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] strong {
+            color: #172033 !important;
+            -webkit-text-fill-color: #172033 !important;
+        }
         @media (max-width:768px) {
             [data-testid="stMainBlockContainer"] h1 { font-size:1.55rem !important; }
             [data-testid="stMainBlockContainer"] p,
