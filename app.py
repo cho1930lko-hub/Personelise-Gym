@@ -927,7 +927,6 @@ with tab1:
                             )
                         else:
                             st.success(f"{len(entries)} सेट Google Sheets में सेव होने की पुष्टि हुई — {ex['name']} 💪")
-                        st.rerun()
 
             st.markdown("")
 
