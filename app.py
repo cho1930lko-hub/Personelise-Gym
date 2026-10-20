@@ -197,6 +197,44 @@ hr { border-color: #1e2d40 !important; }
 }
 
 
+/* PHASE 3 — exercise cards and set-entry controls */
+[data-testid="stMainBlockContainer"] [data-testid="stExpander"] {
+    border-radius: 14px !important;
+    overflow: hidden;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stExpander"] summary {
+    padding: .85rem .9rem !important;
+    font-weight: 700 !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stExpander"] [data-testid="stVerticalBlock"] {
+    gap: .65rem;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stExpander"] [data-testid="stNumberInput"] {
+    min-width: 0 !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stExpander"] [data-testid="stNumberInput"] input {
+    min-height: 46px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stExpander"] [data-testid="stNumberInput"] button {
+    min-width: 32px !important;
+    min-height: 42px !important;
+}
+[data-testid="stMainBlockContainer"] [data-testid="stExpander"] [data-testid="stCaptionContainer"] {
+    line-height: 1.45 !important;
+}
+@media (max-width: 768px) {
+    [data-testid="stMainBlockContainer"] [data-testid="stExpander"] summary {
+        min-height: 48px !important;
+        padding: .8rem !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stExpander"] [data-testid="stHorizontalBlock"] {
+        gap: .55rem !important;
+    }
+}
+
 /* ── Premium Gym Theme: stronger contrast, cleaner surfaces ── */
 /* UI AUDIT / PHASE 1: shared design tokens.
    Keep colors centralized; component-specific exceptions should be documented. */
@@ -1132,15 +1170,16 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-            with st.expander("📝 सेट, रेप्स और वजन दर्ज करें", expanded=False):
+            with st.expander("📝 सेट दर्ज करें · वजन + रेप्स", expanded=False):
+                st.caption("हर सेट में वजन (kg) और रेप्स अलग-अलग दर्ज करें। सेव करने से पहले सभी सेट जाँच लें।")
                 sets_count = st.number_input(
                     "कितने सेट?", min_value=1, max_value=8, value=3, step=1,
                     key=f"sets_count_{key}"
                 )
                 set_entries = []
                 for set_no in range(int(sets_count)):
-                    st.markdown(f"**Set {set_no + 1}**")
-                    sw1, sw2 = st.columns(2)
+                    st.markdown(f"**🏋️ Set {set_no + 1} of {int(sets_count)}**")
+                    sw1, sw2 = st.columns([1, 1], gap="small")
                     with sw1:
                         set_weight = st.number_input(
                             "वजन (kg)", min_value=0.0, max_value=300.0,
