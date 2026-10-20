@@ -1181,53 +1181,109 @@ with tab2:
                          })
 
         st.markdown("---")
-        st.markdown("### 🔥 Advanced Analytics")
-        avg_wt      = df["Weight (kg)"].mean()
-        top_part    = df["Body Part"].value_counts().idxmax()
-        days_worked = len(set(df["Date"]))
-        consistency = min(int((days_worked / 7) * 100), 100)
-        cardio_cnt  = len(df[df["Body Part"] == "Cardio"])
-        fat_score   = min(cardio_cnt * 10, 100)
+        st.markdown("### 📈 Progress & Analytics")
 
-        a1, a2, a3 = st.columns(3)
-        with a1: st.metric("⚖️ Avg Weight",  f"{avg_wt:.1f} kg")
-        with a2: st.metric("🏆 Top Focus",   top_part)
-        with a3: st.metric("📅 Consistency", f"{consistency}%")
+        # Normalize legacy and multi-set records without changing the saved schema.
+        analytics = df.copy()
+        analytics["Weight (kg)"] = pd.to_numeric(analytics["Weight (kg)"], errors="coerce").fillna(0)
+        analytics["Parsed Date"] = pd.to_datetime(
+            analytics["Date"], dayfirst=True, errors="coerce"
+        )
+        analytics["Reps"] = pd.to_numeric(
+            analytics["Status"].astype(str).str.extract(r"(\d+)\s*reps", expand=False),
+            errors="coerce"
+        )
+        analytics["Volume (kg)"] = analytics["Weight (kg)"] * analytics["Reps"].fillna(0)
+        valid_dates = analytics["Parsed Date"].dropna()
+        today_date = pd.Timestamp(date.today())
+        last_7_start = today_date - pd.Timedelta(days=6)
+        days_last_7 = analytics.loc[
+            analytics["Parsed Date"].between(last_7_start, today_date), "Parsed Date"
+        ].dt.date.nunique()
+        top_part = analytics["Body Part"].value_counts().index[0] if not analytics.empty else "—"
+        total_volume = analytics["Volume (kg)"].sum()
+        logged_sets = int(analytics["Reps"].notna().sum())
 
-        st.markdown(f"""
-        <div style='margin:12px 0 4px;font-size:13px;color:#94a3b8;'>
-            🔥 Fat Loss Score: <b style='color:#ef4444;'>{fat_score}/100</b>
-        </div>
-        <div style='background:#1e2d40;border-radius:99px;height:8px;'>
-            <div style='width:{fat_score}%;height:100%;
-                        background:linear-gradient(90deg,#f97316,#ef4444);
-                        border-radius:99px;transition:width 0.5s;'></div>
-        </div>
-        """, unsafe_allow_html=True)
+        a1, a2, a3, a4 = st.columns(4)
+        with a1:
+            st.metric("📅 Training Days", f"{days_last_7}/7", help="पिछले 7 दिनों में दर्ज अलग-अलग workout days")
+        with a2:
+            st.metric("🏋️ Logged Sets", logged_sets, help="नए multi-set रिकॉर्ड जिनमें reps दर्ज हैं")
+        with a3:
+            st.metric("📦 Volume", f"{total_volume:,.0f} kg", help="केवल उन सेटों का weight × reps जिनमें reps दर्ज हैं")
+        with a4:
+            st.metric("🎯 Most Trained", top_part)
+
+        st.caption("पुराने लॉग में reps उपलब्ध न होने पर volume में उन्हें शामिल नहीं किया जाता।")
 
         st.markdown("---")
-        st.markdown("### 📊 Body Part Breakdown")
-        bd = df["Body Part"].value_counts().reset_index()
-        bd.columns = ["Body Part", "Count"]
-        st.bar_chart(bd.set_index("Body Part"))
+        st.markdown("### 📊 Muscle Group Training")
+        group_counts = analytics.groupby("Body Part").agg(
+            Entries=("Exercise", "count"),
+            Workout_Days=("Parsed Date", lambda values: values.dropna().dt.date.nunique())
+        ).sort_values("Entries", ascending=False)
+        if not group_counts.empty:
+            st.bar_chart(group_counts[["Entries"]])
+            with st.expander("मसल ग्रुप के विस्तृत आँकड़े"):
+                st.dataframe(group_counts.rename(columns={
+                    "Entries": "Log Entries", "Workout_Days": "Training Days"
+                }), use_container_width=True)
 
-        st.markdown("### ⚖️ Weight Progress")
-        ex_opts = df[df["Weight (kg)"] > 0]["Exercise"].unique().tolist()
+        st.markdown("---")
+        st.markdown("### ⚖️ Exercise Progress")
+        valid_weights = analytics[analytics["Weight (kg)"] > 0].copy()
+        ex_opts = sorted(valid_weights["Exercise"].dropna().unique().tolist())
         if ex_opts:
-            sel   = st.selectbox("Exercise चुनो:", ex_opts)
-            ex_df = df[df["Exercise"] == sel][["Date", "Weight (kg)"]].copy()
-            ex_df = ex_df[ex_df["Weight (kg)"] > 0].copy()
-            ex_df["Date"] = pd.to_datetime(ex_df["Date"], dayfirst=True)
-            ex_df = ex_df.sort_values("Date")
+            selected_exercise = st.selectbox(
+                "Exercise चुनें", ex_opts, key="progress_exercise_select"
+            )
+            ex_df = valid_weights[valid_weights["Exercise"] == selected_exercise].copy()
+            ex_df = ex_df.dropna(subset=["Parsed Date"]).sort_values("Parsed Date")
             if not ex_df.empty:
-                st.line_chart(ex_df.set_index("Date"))
-                weights = ex_df["Weight (kg)"].values
-                if len(weights) >= 3:
-                    trend  = weights[-1] - weights[0]
-                    future = weights[-1] + (trend / len(weights)) * 7
-                    st.info(f"🔮 अगले 7 दिन में अनुमानित weight: **{future:.1f} kg**")
+                daily_progress = ex_df.groupby("Parsed Date").agg(
+                    **{"Weight (kg)": ("Weight (kg)", "max")}
+                )
+                st.line_chart(daily_progress)
+                first_best = float(ex_df.iloc[0]["Weight (kg)"])
+                max_weight = float(ex_df["Weight (kg)"].max())
+                latest_weight = float(ex_df.iloc[-1]["Weight (kg)"])
+                p1, p2, p3 = st.columns(3)
+                with p1:
+                    st.metric("पहला दर्ज वजन", f"{first_best:g} kg")
+                with p2:
+                    st.metric("सबसे अधिक वजन", f"{max_weight:g} kg")
+                with p3:
+                    st.metric("आखिरी दर्ज वजन", f"{latest_weight:g} kg")
+                if ex_df["Reps"].notna().any():
+                    st.markdown("#### 🔁 Reps Progress")
+                    reps_df = ex_df.dropna(subset=["Reps"]).groupby("Parsed Date").agg(
+                        Reps=("Reps", "max")
+                    )
+                    if not reps_df.empty:
+                        st.line_chart(reps_df)
+            else:
+                st.info("इस exercise के लिए तारीख वाला रिकॉर्ड उपलब्ध नहीं है।")
         else:
-            st.info("पहले exercises में weight डालो — chart यहाँ दिखेगा।")
+            st.info("Progress chart के लिए पहले किसी exercise में वजन दर्ज करें।")
+
+        st.markdown("---")
+        st.markdown("### 🗓️ Recent Training History")
+        history = analytics.dropna(subset=["Parsed Date"]).copy()
+        if not history.empty:
+            history["Date"] = history["Parsed Date"].dt.strftime("%d-%m-%Y")
+            recent_days = sorted(history["Parsed Date"].dt.date.unique(), reverse=True)[:14]
+            day_options = [d.strftime("%d-%m-%Y") for d in recent_days]
+            selected_days = st.multiselect(
+                "तारीख के अनुसार फ़िल्टर करें", day_options,
+                default=day_options[:min(7, len(day_options))],
+                key="history_date_filter"
+            )
+            filtered_history = history[
+                history["Date"].isin(selected_days)
+            ][["Date", "Time", "Body Part", "Exercise", "Weight (kg)", "Status"]]
+            st.dataframe(filtered_history, use_container_width=True, hide_index=True)
+        else:
+            st.info("तारीख वाले workout रिकॉर्ड उपलब्ध नहीं हैं।")
 
         st.markdown("---")
         cd, cl = st.columns([3, 1])
