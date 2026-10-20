@@ -866,6 +866,116 @@ with st.sidebar:
             border:1px solid #d3deeb !important;
             box-shadow:0 6px 20px rgba(31,55,86,.06) !important;
         }
+
+        /* High-contrast light mode: cover Streamlit and custom HTML widgets. */
+        [data-testid="stMain"] {
+            background:linear-gradient(145deg,#f4f7fb 0%,#eaf0f8 55%,#f8fafc 100%) !important;
+        }
+        [data-testid="stMainBlockContainer"] {
+            background:transparent !important;
+            color:#172033 !important;
+        }
+        [data-testid="stMainBlockContainer"] p,
+        [data-testid="stMainBlockContainer"] li,
+        [data-testid="stMainBlockContainer"] label,
+        [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"],
+        [data-testid="stMainBlockContainer"] [data-testid="stCaptionContainer"] {
+            color:#263449 !important;
+        }
+        [data-testid="stMainBlockContainer"] h1,
+        [data-testid="stMainBlockContainer"] h2,
+        [data-testid="stMainBlockContainer"] h3,
+        [data-testid="stMainBlockContainer"] h4,
+        [data-testid="stMainBlockContainer"] h5,
+        [data-testid="stMainBlockContainer"] h6 {
+            color:#172033 !important;
+            -webkit-text-fill-color:#172033 !important;
+            text-shadow:none !important;
+        }
+        /* Override inline dark text/background in custom cards, tips, timers and stats. */
+        [data-testid="stMainBlockContainer"] [style*="background:#0d1117"],
+        [data-testid="stMainBlockContainer"] [style*="background: #0d1117"],
+        [data-testid="stMainBlockContainer"] [style*="background:#101a2b"],
+        [data-testid="stMainBlockContainer"] [style*="background:#0b1423"],
+        [data-testid="stMainBlockContainer"] [style*="background:rgba(16,26,43"],
+        [data-testid="stMainBlockContainer"] [style*="background: linear-gradient(145deg,#142238"],
+        [data-testid="stMainBlockContainer"] [style*="background:linear-gradient(145deg,#142238"] {
+            background:#ffffff !important;
+            border-color:#d3deeb !important;
+            box-shadow:0 3px 12px rgba(31,55,86,.06) !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="color:#e2e8f0"],
+        [data-testid="stMainBlockContainer"] [style*="color: #e2e8f0"],
+        [data-testid="stMainBlockContainer"] [style*="color:#f8fafc"],
+        [data-testid="stMainBlockContainer"] [style*="color: #f8fafc"],
+        [data-testid="stMainBlockContainer"] [style*="color:#cbd5e1"],
+        [data-testid="stMainBlockContainer"] [style*="color: #cbd5e1"],
+        [data-testid="stMainBlockContainer"] [style*="color:#94a3b8"],
+        [data-testid="stMainBlockContainer"] [style*="color: #94a3b8"],
+        [data-testid="stMainBlockContainer"] [style*="color:#64748b"],
+        [data-testid="stMainBlockContainer"] [style*="color: #64748b"] {
+            color:#334155 !important;
+            -webkit-text-fill-color:#334155 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#1e2d40"],
+        [data-testid="stMainBlockContainer"] [style*="background: #1e2d40"] {
+            background:#dbe5f0 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#142238"],
+        [data-testid="stMainBlockContainer"] [style*="background: #142238"] {
+            background:#ffffff !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:linear-gradient(135deg,#10233b"],
+        [data-testid="stMainBlockContainer"] [style*="background: linear-gradient(135deg,#10233b"] {
+            background:linear-gradient(135deg,#ffffff,#edf4fb) !important;
+            border-color:#cbd9e8 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="color:#93c5fd"],
+        [data-testid="stMainBlockContainer"] [style*="color: #93c5fd"] {
+            color:#1d4ed8 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="color:#60a5fa"],
+        [data-testid="stMainBlockContainer"] [style*="color: #60a5fa"] {
+            color:#1d4ed8 !important;
+            -webkit-text-fill-color:#1d4ed8 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="color:#475569"],
+        [data-testid="stMainBlockContainer"] [style*="color: #475569"] {
+            color:#334155 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#052e16"] {
+            background:#e8f8ef !important;
+            border-color:#86d6a6 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="color:#22c55e"] {
+            color:#166534 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#1c0a00"] {
+            background:#fff7ed !important;
+            border-color:#fdba74 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="color:#f97316"] {
+            color:#9a3412 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#0b1423"],
+        [data-testid="stMainBlockContainer"] [style*="background: #0b1423"] {
+            background:#ffffff !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:linear-gradient(90deg"] {
+            color:#172033 !important;
+        }
+        [data-testid="stMainBlockContainer"] [data-testid="stProgressBar"] > div {
+            background:#dbe5f0 !important;
+        }
+        [data-testid="stMainBlockContainer"] [data-testid="stExpander"] p,
+        [data-testid="stMainBlockContainer"] [data-testid="stAlert"] p {
+            color:#263449 !important;
+        }
+        @media (max-width:768px) {
+            [data-testid="stMainBlockContainer"] h1 { font-size:1.55rem !important; }
+            [data-testid="stMainBlockContainer"] p,
+            [data-testid="stMainBlockContainer"] label { line-height:1.45 !important; }
+        }
         </style>
         """, unsafe_allow_html=True)
 
