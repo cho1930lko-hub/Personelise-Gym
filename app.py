@@ -407,6 +407,8 @@ def gsheet_load_body_stats_history():
 SAVE_FILE = "gym_data.json"
 
 def save_data():
+    """Atomically write the local fallback file; report failure to the caller."""
+    temp_file = f"{SAVE_FILE}.tmp"
     try:
         data = {
             "checked":      st.session_state.checked,
@@ -417,21 +419,34 @@ def save_data():
             "body_weight":  st.session_state.body_weight,
             "goal_weight":  st.session_state.goal_weight,
         }
-        with open(SAVE_FILE, "w") as f:
-            json.dump(data, f)
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_file, SAVE_FILE)
+        return True
     except Exception:
-        pass
+        try:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+        except OSError:
+            pass
+        return False
 
 def load_data():
-    if os.path.exists(SAVE_FILE):
-        try:
-            with open(SAVE_FILE, "r") as f:
-                data = json.load(f)
-            for k, v in data.items():
-                if k not in st.session_state:
-                    st.session_state[k] = v
-        except Exception:
-            pass
+    if not os.path.exists(SAVE_FILE):
+        return True
+    try:
+        with open(SAVE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return False
+        for k, v in data.items():
+            if k not in st.session_state:
+                st.session_state[k] = v
+        return True
+    except Exception:
+        return False
 
 # ─────────────────────────────────────────────
 # EXERCISE DATA
@@ -897,15 +912,21 @@ with tab1:
                         st.session_state.workout_log = entries + st.session_state.workout_log
                         st.session_state.checked[key] = True
                         st.session_state.rest_timer = 60
-                        save_data()
+                        local_saved = save_data()
                         failed_saves = sum(1 for entry in entries if not gsheet_save_workout(entry))
+                        if not local_saved:
+                            st.error(
+                                "⚠️ लोकल बैकअप फ़ाइल में सेव नहीं हो पाया। "
+                                "यह ऐप के सर्वर पर स्थायी बैकअप की गारंटी नहीं देता; Google Sheets स्थिति भी जाँचें।"
+                            )
                         if failed_saves:
                             st.warning(
-                                f"{len(entries) - failed_saves}/{len(entries)} सेट Google Sheets में सेव हुए। "
-                                "बाकी सेटों के लिए कनेक्शन जाँचें; लोकल लॉग में सभी सेट मौजूद हैं।"
+                                f"{len(entries) - failed_saves}/{len(entries)} सेट Google Sheets में सेव होने की पुष्टि हुई। "
+                                "कुछ अनुरोध विफल हुए या उनका परिणाम अनिश्चित है। दोबारा सेव करने से डुप्लिकेट बन सकते हैं; "
+                                "पहले WorkoutLog शीट में तारीख, समय और एक्सरसाइज़ जाँचें।"
                             )
                         else:
-                            st.success(f"{len(entries)} सेट लॉग हो गए — {ex['name']} 💪")
+                            st.success(f"{len(entries)} सेट Google Sheets में सेव होने की पुष्टि हुई — {ex['name']} 💪")
                         st.rerun()
 
             st.markdown("")
@@ -1306,7 +1327,9 @@ with tab2:
         with cl:
             if st.button("🗑️ Clear Log", use_container_width=True):
                 st.session_state.workout_log = []
-                save_data(); st.rerun()
+                if not save_data():
+                    st.error("लोकल डेटा फ़ाइल अपडेट नहीं हो सकी।")
+                st.rerun()
     else:
         st.markdown("""
         <div style='text-align:center;padding:60px;color:#334155;'>
