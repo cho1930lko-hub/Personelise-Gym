@@ -538,6 +538,19 @@ COACHING RULES:
     except Exception:
         return "⚠️ AI Coach अभी जवाब नहीं दे पाया। थोड़ी देर बाद फिर कोशिश करें और Streamlit/Groq connection settings जाँचें।"
 
+def render_ai_answer(answer, title="🤖 AI Coach का जवाब"):
+    """Render AI output consistently and handle empty/error responses clearly."""
+    if answer is None or not str(answer).strip():
+        st.warning("AI से खाली जवाब मिला। कृपया दोबारा कोशिश करें।")
+        return
+    answer_text = str(answer).strip()
+    if answer_text.startswith(("⚠️", "❌", "Error:", "ERROR:")):
+        st.warning(answer_text)
+        return
+    st.markdown(f"#### {title}")
+    with st.container(border=True):
+        st.markdown(answer_text)
+
 # ─────────────────────────────────────────────
 # GOOGLE SHEETS SETUP
 # ─────────────────────────────────────────────
@@ -1794,15 +1807,7 @@ with tab2:
                     st.info("लोकल लॉग सूची साफ हुई। Google Sheets के मूल रिकॉर्ड सुरक्षित हैं।")
                 st.rerun()
     else:
-        st.markdown("""
-        <div style='text-align:center;padding:60px;color:#334155;'>
-            <div style='font-size:48px;'>📋</div>
-            <div style='font-size:18px;margin-top:12px;color:#475569;'>अभी कोई log नहीं है</div>
-            <div style='font-size:13px;color:#1e2d40;margin-top:6px;'>
-                Workout tab → exercises tick करो 💪
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.info("📋 अभी कोई workout log नहीं है। Workout tab में exercise चुनकर सेट सेव करें; रिकॉर्ड यहाँ दिखाई देगा।")
 
 # ══════════════════════════════════════════
 # TAB 3 — AI COACH
@@ -1849,20 +1854,20 @@ with tab3:
         if st.button("💪 Next Workout Plan", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
                 ans = ask_ai("Next workout plan बनाओ — कल क्या करूँ?", st.session_state.workout_log)
-            st.success(ans)
+            render_ai_answer(ans)
         if st.button("🔥 Fat Loss Tips", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
                 ans = ask_ai("Fat loss के लिए best tips दो।", st.session_state.workout_log)
-            st.success(ans)
+            render_ai_answer(ans)
     with q2:
         if st.button("📈 Strength बढ़ाओ", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
                 ans = ask_ai("Strength और muscle कैसे बढ़ाऊ?", st.session_state.workout_log)
-            st.success(ans)
+            render_ai_answer(ans)
         if st.button("🥗 Diet Plan", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
                 ans = ask_ai("Simple Indian diet plan दो gym के लिए।", st.session_state.workout_log)
-            st.success(ans)
+            render_ai_answer(ans)
 
     st.markdown("---")
     st.markdown("#### 💬 Custom Question पूछो")
@@ -1871,7 +1876,7 @@ with tab3:
         if q:
             with st.spinner("AI सोच रहा है..."):
                 answer = ask_ai(q, st.session_state.workout_log)
-            st.success(answer)
+            render_ai_answer(answer)
         else:
             st.warning("पहले question लिखो!")
 
@@ -1885,7 +1890,7 @@ with tab3:
                     "Hindi + English mix mein. Short aur clear.",
                     st.session_state.workout_log
                 )
-            st.success(plan)
+            render_ai_answer(plan, "📅 आपका 30-Day Plan")
         else:
             st.markdown("""
 **📅 30-Day Smart Plan:**
@@ -1938,7 +1943,14 @@ with tab4:
                                delta_color="inverse")
 
             st.markdown("---")
-            with st.expander("📋 Full History Table"):
+            st.download_button(
+                "⬇️ Body History CSV डाउनलोड करें",
+                data=df_body.to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"body_history_{date.today()}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+            with st.expander("📋 पूरी Body History Table"):
                 st.dataframe(df_body, use_container_width=True, hide_index=True)
         else:
             st.info("अभी कोई body stats नहीं हैं। Workout tab → Body Stats → Save Stats दबाओ।")
