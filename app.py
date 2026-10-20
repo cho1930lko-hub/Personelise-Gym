@@ -1247,11 +1247,15 @@ done_count  = sum(1 for ex in exercises
 total_count = len(exercises)
 pct         = int((done_count / total_count) * 100)
 
+header_color = "#172033" if is_light_theme else color
+header_fill = "none" if is_light_theme else f"linear-gradient(135deg,{color},{color}88)"
+header_text_fill = header_color if is_light_theme else "transparent"
 st.markdown(f"""
 <div style='padding:20px 0 8px;'>
     <h1 style='margin:0;font-size:34px;font-weight:900;
-               background:linear-gradient(135deg,{color},{color}88);
-               -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+               background:{header_fill};
+               -webkit-background-clip:text;-webkit-text-fill-color:{header_text_fill};
+               color:{header_color};
                font-family:"Exo 2",sans-serif;letter-spacing:2px;'>
         {menu.upper()} WORKOUT
     </h1>
@@ -1277,7 +1281,15 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-st.info(muscle["info"])
+if is_light_theme:
+    st.markdown(
+        f"<div style='background:#dbeafe;color:#1e293b;border:1px solid #93c5fd;"
+        f"border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.5;'>"
+        f"💡 {muscle['info']}</div>",
+        unsafe_allow_html=True,
+    )
+else:
+    st.info(muscle["info"])
 
 # ─────────────────────────────────────────────
 # TABS
