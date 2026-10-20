@@ -1863,11 +1863,11 @@ with tab3:
         if st.button("📈 Strength बढ़ाओ", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
                 ans = ask_ai("Strength और muscle कैसे बढ़ाऊ?", st.session_state.workout_log)
-            st.success(ans)
+            render_ai_answer(ans)
         if st.button("🥗 Diet Plan", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
                 ans = ask_ai("Simple Indian diet plan दो gym के लिए।", st.session_state.workout_log)
-            st.success(ans)
+            render_ai_answer(ans)
 
     st.markdown("---")
     st.markdown("#### 💬 Custom Question पूछो")
