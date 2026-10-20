@@ -196,6 +196,122 @@ hr { border-color: #1e2d40 !important; }
     }
 }
 
+
+/* ── Premium Gym Theme: stronger contrast, cleaner surfaces ── */
+:root {
+    color-scheme: dark;
+    --gym-bg: #080d18;
+    --gym-panel: #101a2b;
+    --gym-panel-raised: #142238;
+    --gym-border: #2a3d59;
+    --gym-text: #f1f5f9;
+    --gym-muted: #b2c0d4;
+    --gym-accent: #38e6b0;
+    --gym-blue: #60a5fa;
+}
+.stApp {
+    background:
+        radial-gradient(ellipse at 12% 0%, rgba(37,99,235,.18), transparent 38%),
+        radial-gradient(ellipse at 88% 12%, rgba(16,185,129,.10), transparent 34%),
+        linear-gradient(145deg, #080d18 0%, #0b1322 52%, #080d18 100%) !important;
+    color: var(--gym-text) !important;
+}
+[data-testid="stHeader"] {
+    background: rgba(8,13,24,.88) !important;
+}
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0e1727 0%, #090f1b 100%) !important;
+    border-right: 1px solid #263750 !important;
+}
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+    color: #c1cee0 !important;
+}
+h1, h2, h3, h4, h5, h6 {
+    color: #f8fafc !important;
+    text-shadow: 0 1px 12px rgba(56,230,176,.07);
+}
+p, li, label, [data-testid="stMarkdownContainer"] {
+    color: #d7e1ef;
+}
+[data-testid="stCaptionContainer"], small {
+    color: #aebed3 !important;
+}
+[data-testid="stMetric"] {
+    background: linear-gradient(145deg, #142238, #0e1828) !important;
+    border: 1px solid #304662 !important;
+    border-radius: 15px !important;
+    box-shadow: 0 7px 22px rgba(0,0,0,.18);
+}
+[data-testid="stMetricLabel"] {
+    color: #c3d1e4 !important;
+}
+[data-testid="stMetricValue"] {
+    color: #f8fafc !important;
+    font-weight: 800 !important;
+}
+.stButton > button, [data-testid="stDownloadButton"] button {
+    background: linear-gradient(120deg, #176b63 0%, #1454a3 100%) !important;
+    border: 1px solid rgba(90,230,195,.35) !important;
+    color: #ffffff !important;
+    border-radius: 11px !important;
+    box-shadow: 0 4px 14px rgba(20,84,163,.18);
+}
+.stButton > button:hover, [data-testid="stDownloadButton"] button:hover {
+    background: linear-gradient(120deg, #168577 0%, #1d65bd 100%) !important;
+    border-color: #5ce6c3 !important;
+    box-shadow: 0 5px 18px rgba(56,230,176,.18) !important;
+}
+.stTextInput input, .stTextArea textarea, .stNumberInput input,
+[data-baseweb="select"] > div {
+    background: #0b1423 !important;
+    color: #f1f5f9 !important;
+    border-color: #3a506e !important;
+}
+.stTextInput input::placeholder, .stTextArea textarea::placeholder {
+    color: #9aabc1 !important;
+}
+.stTabs [data-baseweb="tab"] {
+    color: #c0cde0 !important;
+}
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    color: #62f0c3 !important;
+    border-bottom-color: #38e6b0 !important;
+}
+[data-testid="stExpander"] {
+    background: rgba(16,26,43,.72) !important;
+    border: 1px solid #2a3d59 !important;
+    border-radius: 13px !important;
+}
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary p {
+    color: #e6edf7 !important;
+}
+[data-testid="stAlert"] {
+    border: 1px solid #3b506c !important;
+    color: #f1f5f9 !important;
+}
+[data-testid="stDataFrame"], [data-testid="stTable"] {
+    border: 1px solid #2a3d59 !important;
+    border-radius: 12px !important;
+}
+hr {
+    border-color: #2a3d59 !important;
+}
+.glass {
+    background: linear-gradient(145deg, rgba(20,34,56,.88), rgba(11,20,35,.92)) !important;
+    border: 1px solid #2a3d59 !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.16);
+}
+@media (max-width: 768px) {
+    [data-testid="stMetric"] { box-shadow: none !important; }
+    .stButton > button, [data-testid="stDownloadButton"] button {
+        min-height: 46px !important;
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
