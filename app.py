@@ -882,8 +882,19 @@ with tab1:
                         )
                     set_entries.append((float(set_weight), int(set_reps)))
 
-                if st.button("✅ सेट सेव करें" if not is_done else "↻ दोबारा लॉग करें",
-                             key=f"save_sets_{key}", use_container_width=True):
+                allow_duplicate_log = False
+                if is_done:
+                    allow_duplicate_log = st.checkbox(
+                        "मैं जानबूझकर इस एक्सरसाइज़ को दोबारा लॉग करना चाहता हूँ",
+                        key=f"confirm_duplicate_{key}"
+                    )
+                    st.warning("यह एक्सरसाइज़ पहले ही लॉग की गई है। दोबारा सेव करने पर अतिरिक्त रिकॉर्ड बनेंगे।")
+
+                if st.button(
+                    "✅ सेट सेव करें" if not is_done else "↻ दोबारा लॉग करें",
+                    key=f"save_sets_{key}", use_container_width=True,
+                    disabled=is_done and not allow_duplicate_log
+                ):
                     if any(weight <= 0 for weight, _ in set_entries):
                         st.warning("हर सेट के लिए वजन 0 से अधिक दर्ज करें।")
                     else:
@@ -1107,14 +1118,20 @@ with tab1:
         if st.button("💾 Save Stats", use_container_width=True):
             st.session_state.body_weight = bw
             st.session_state.goal_weight = gw
-            save_data()
-            # Google Sheet में save करो
-            ok = gsheet_save_body_stats(bw, gw)
-            gsheet_save_weekly(st.session_state.weekly)
-            if ok:
-                st.success("✅ Saved! (Local + Google Sheet)")
+            local_ok = save_data()
+            sheet_ok = gsheet_save_body_stats(bw, gw)
+            weekly_ok = gsheet_save_weekly(st.session_state.weekly)
+            if local_ok and sheet_ok and weekly_ok:
+                st.success("✅ लोकल डेटा, BodyStats और WeeklyTracker Google Sheets में सेव होने की पुष्टि हुई।")
             else:
-                st.success("✅ Saved! (Local only)")
+                problems = []
+                if not local_ok:
+                    problems.append("लोकल फ़ाइल सेव नहीं हुई")
+                if not sheet_ok:
+                    problems.append("BodyStats/Settings Google Sheets सेविंग विफल या अनिश्चित")
+                if not weekly_ok:
+                    problems.append("WeeklyTracker Google Sheets सेविंग विफल या अनिश्चित")
+                st.error("⚠️ पूरी सेविंग की पुष्टि नहीं हुई: " + "। ".join(problems) + "। शीट जाँचें; तुरंत बार-बार सेव न करें।")
 
         if bw > 0:
             bmi     = bw / (1.70 ** 2)
