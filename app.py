@@ -772,64 +772,84 @@ with tab1:
         st.caption("⚖️ पहले weight डालो → फिर ✅ tick करो")
 
         for ex in exercises:
-            key     = f"{menu}_{ex['name']}"
+            key = f"{menu}_{ex['name']}"
             is_done = st.session_state.checked.get(key, False)
-            bg      = f"{color}18" if is_done else "#0d1117"
-            border  = color        if is_done else "#1e2d40"
-            nc      = color        if is_done else "#e2e8f0"
-            strike  = "line-through" if is_done else "none"
+            bg = f"{color}18" if is_done else "#0d1117"
+            border = color if is_done else "#1e2d40"
+            nc = color if is_done else "#e2e8f0"
+            strike = "line-through" if is_done else "none"
 
-            col_chk, col_inf, col_wt = st.columns([1, 6, 2])
+            st.markdown(f"""
+            <div style='padding:10px 12px;border-radius:10px;
+                        background:{bg};border:1px solid {border};margin:8px 0 4px;'>
+                <div style='font-size:15px;font-weight:700;color:{nc};
+                            text-decoration:{strike};'>{ex["name"]}</div>
+                <div style='font-size:12px;color:#94a3b8;margin-top:3px;'>💡 {ex["tip"]}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-            with col_chk:
-                checked = st.checkbox("", value=is_done, key=f"cb_{key}")
-                if checked != is_done:
-                    wt_val = st.session_state.get(f"wt_{key}", 0.0)
-                    if checked and wt_val == 0:
-                        st.warning("⚠️ पहले weight डालो!")
+            with st.expander("📝 सेट, रेप्स और वजन दर्ज करें", expanded=False):
+                sets_count = st.number_input(
+                    "कितने सेट?", min_value=1, max_value=8, value=3, step=1,
+                    key=f"sets_count_{key}"
+                )
+                set_entries = []
+                for set_no in range(int(sets_count)):
+                    st.markdown(f"**Set {set_no + 1}**")
+                    sw1, sw2 = st.columns(2)
+                    with sw1:
+                        set_weight = st.number_input(
+                            "वजन (kg)", min_value=0.0, max_value=300.0,
+                            value=0.0, step=0.5, key=f"set_weight_{key}_{set_no}"
+                        )
+                    with sw2:
+                        set_reps = st.number_input(
+                            "Reps", min_value=1, max_value=100, value=10, step=1,
+                            key=f"set_reps_{key}_{set_no}"
+                        )
+                    set_entries.append((float(set_weight), int(set_reps)))
+
+                if st.button("✅ सेट सेव करें" if not is_done else "↻ दोबारा लॉग करें",
+                             key=f"save_sets_{key}", use_container_width=True):
+                    if any(weight <= 0 for weight, _ in set_entries):
+                        st.warning("हर सेट के लिए वजन 0 से अधिक दर्ज करें।")
                     else:
-                        st.session_state.checked[key] = checked
-                        if checked:
-                            now   = datetime.now()
-                            today = now.strftime("%d-%m-%Y")
-                            if st.session_state.last_workout != today:
-                                st.session_state.streak      += 1
-                                st.session_state.last_workout = today
-                            today_day = now.strftime("%a")
-                            if today_day in st.session_state.weekly:
-                                st.session_state.weekly[today_day] = True
-                            entry = {
-                                "Date":        today,
-                                "Time":        now.strftime("%I:%M %p"),
-                                "Body Part":   menu.split(" ", 1)[1] if " " in menu else menu,
-                                "Exercise":    ex["name"],
-                                "Weight (kg)": wt_val,
-                                "Status":      "✔ Done"
-                            }
-                            st.session_state.workout_log.insert(0, entry)
-                            st.session_state.rest_timer = 60
-                            save_data()
-                            # Google Sheet में भी save करो
-                            gsheet_save_workout(entry)
-                            st.toast(f"✅ {ex['name']} logged! 💪", icon="🔥")
+                        now = datetime.now()
+                        today = now.strftime("%d-%m-%Y")
+                        if st.session_state.last_workout != today:
+                            st.session_state.streak += 1
+                            st.session_state.last_workout = today
+                        today_day = now.strftime("%a")
+                        if today_day in st.session_state.weekly:
+                            st.session_state.weekly[today_day] = True
+
+                        body_part = menu.split(" ", 1)[1] if " " in menu else menu
+                        entries = []
+                        for set_no, (weight, reps) in enumerate(set_entries, start=1):
+                            entries.append({
+                                "Date": today,
+                                "Time": now.strftime("%I:%M %p"),
+                                "Body Part": body_part,
+                                "Exercise": ex["name"],
+                                "Weight (kg)": weight,
+                                "Status": f"✔ Set {set_no}/{len(set_entries)} · {reps} reps"
+                            })
+
+                        # Keep the existing WorkoutLog columns; each set is a row.
+                        st.session_state.workout_log = entries + st.session_state.workout_log
+                        st.session_state.checked[key] = True
+                        st.session_state.rest_timer = 60
+                        save_data()
+                        failed_saves = sum(1 for entry in entries if not gsheet_save_workout(entry))
+                        if failed_saves:
+                            st.warning(
+                                f"{len(entries) - failed_saves}/{len(entries)} सेट Google Sheets में सेव हुए। "
+                                "बाकी सेटों के लिए कनेक्शन जाँचें; लोकल लॉग में सभी सेट मौजूद हैं।"
+                            )
+                        else:
+                            st.success(f"{len(entries)} सेट लॉग हो गए — {ex['name']} 💪")
                         st.rerun()
 
-            with col_inf:
-                st.markdown(f"""
-                <div style='padding:8px 12px;border-radius:10px;
-                            background:{bg};border:1px solid {border};'>
-                    <div style='font-size:15px;font-weight:700;
-                                color:{nc};text-decoration:{strike};'>{ex["name"]}</div>
-                    <div style='font-size:12px;color:#64748b;margin-top:2px;'>
-                        💡 {ex["tip"]}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            with col_wt:
-                st.number_input("⚖️ kg", min_value=0.0, max_value=300.0,
-                                step=0.5, value=0.0,
-                                key=f"wt_{key}", label_visibility="visible")
             st.markdown("")
 
         st.markdown("---")
