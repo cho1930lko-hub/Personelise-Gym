@@ -1064,6 +1064,40 @@ with st.sidebar:
             border: 1px solid var(--gym-border) !important;
             box-shadow: 0 6px 20px rgba(31,55,86,.06) !important;
         }
+        /* Contrast fix: some legacy inline HTML still carries dark-theme colors. */
+        [data-testid="stMainBlockContainer"] [style*="color:#f8fafc"],
+        [data-testid="stMainBlockContainer"] [style*="color:#f1f5f9"],
+        [data-testid="stMainBlockContainer"] [style*="color:#e2e8f0"],
+        [data-testid="stMainBlockContainer"] [style*="color:#cbd5e1"] {
+            color: var(--gym-text) !important;
+            -webkit-text-fill-color: var(--gym-text) !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="color:#94a3b8"],
+        [data-testid="stMainBlockContainer"] [style*="color:#64748b"] {
+            color: var(--gym-muted) !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#0d1117"],
+        [data-testid="stMainBlockContainer"] [style*="background:#1e2d40"] {
+            background: var(--gym-surface) !important;
+            border-color: var(--gym-border) !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#1e2d40"] {
+            background: #dbe5f0 !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#052e16"] {
+            background: #dcfce7 !important;
+            border-color: #86efac !important;
+        }
+        [data-testid="stMainBlockContainer"] [style*="background:#1c0a00"] {
+            background: #fff7ed !important;
+            border-color: #fdba74 !important;
+        }
+        [data-testid="stMainBlockContainer"] h1[style*="-webkit-text-fill-color:transparent"] {
+            background: linear-gradient(135deg,#172033,#334155) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            text-shadow: none !important;
+        }
         input:focus, textarea:focus, [data-baseweb="select"]:focus-within {
             border-color: var(--gym-accent) !important;
             box-shadow: 0 0 0 2px var(--gym-focus-ring) !important;
