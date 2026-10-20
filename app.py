@@ -1081,9 +1081,26 @@ with tab1:
                 """, unsafe_allow_html=True)
                 if st.button("", key=f"day_{day}", help=day):
                     st.session_state.weekly[day] = not val
-                    save_data()
-                    gsheet_save_weekly(st.session_state.weekly)
+                    local_ok = save_data()
+                    sheet_ok = gsheet_save_weekly(st.session_state.weekly)
+                    if not local_ok or not sheet_ok:
+                        st.session_state["weekly_save_warning"] = (
+                            "लोकल फ़ाइल" if not local_ok else ""
+                        )
+                        if not sheet_ok:
+                            st.session_state["weekly_save_warning"] += (
+                                " और " if not local_ok else ""
+                            ) + "Google Sheets WeeklyTracker"
+                    else:
+                        st.session_state.pop("weekly_save_warning", None)
                     st.rerun()
+
+        if st.session_state.get("weekly_save_warning"):
+            st.warning(
+                "Weekly tracker पूरी तरह सेव होने की पुष्टि नहीं हुई: "
+                + st.session_state["weekly_save_warning"]
+                + "। Google Sheets जाँचें।"
+            )
 
         gym_days = sum(1 for v in st.session_state.weekly.values() if v)
         st.markdown(f"""
@@ -1148,7 +1165,7 @@ with tab1:
             st.markdown(f"""
             <div class='glass'>
                 <div style='font-size:13px;color:#94a3b8;'>
-                    BMI: <b style='color:{bmi_clr};'>{bmi:.1f} ({bmi_cat})</b>
+                    BMI estimate (assuming height 1.70 m): <b style='color:{bmi_clr};'>{bmi:.1f} ({bmi_cat})</b>
                 </div>
                 <div style='font-size:13px;color:#94a3b8;margin-top:4px;'>
                     Goal: <b style='color:#22c55e;'>{gw} kg</b>
@@ -1341,10 +1358,13 @@ with tab2:
                                file_name=f"gym_log_{date.today()}.csv",
                                mime="text/csv", use_container_width=True)
         with cl:
-            if st.button("🗑️ Clear Log", use_container_width=True):
+            st.caption("यह लॉग केवल इस ऐप की लोकल सूची साफ करता है; Google Sheets के WorkoutLog रिकॉर्ड नहीं हटते और दोबारा लोड हो सकते हैं。")
+            if st.button("🧹 Clear Local Log View", use_container_width=True):
                 st.session_state.workout_log = []
                 if not save_data():
                     st.error("लोकल डेटा फ़ाइल अपडेट नहीं हो सकी।")
+                else:
+                    st.info("लोकल लॉग सूची साफ हुई। Google Sheets के मूल रिकॉर्ड सुरक्षित हैं।")
                 st.rerun()
     else:
         st.markdown("""
