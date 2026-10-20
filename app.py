@@ -198,16 +198,27 @@ hr { border-color: #1e2d40 !important; }
 
 
 /* ── Premium Gym Theme: stronger contrast, cleaner surfaces ── */
+/* UI AUDIT / PHASE 1: shared design tokens.
+   Keep colors centralized; component-specific exceptions should be documented. */
 :root {
     color-scheme: dark;
     --gym-bg: #080d18;
-    --gym-panel: #101a2b;
-    --gym-panel-raised: #142238;
+    --gym-surface: #101a2b;
+    --gym-surface-raised: #142238;
+    --gym-surface-input: #0b1423;
     --gym-border: #2a3d59;
+    --gym-border-strong: #3a506e;
     --gym-text: #f1f5f9;
+    --gym-heading: #f8fafc;
     --gym-muted: #b2c0d4;
+    --gym-subtle: #94a3b8;
     --gym-accent: #38e6b0;
+    --gym-accent-strong: #0f766e;
     --gym-blue: #60a5fa;
+    --gym-button-text: #ffffff;
+    --gym-radius-card: 14px;
+    --gym-radius-control: 10px;
+    --gym-focus-ring: rgba(56,230,176,.45);
 }
 .stApp {
     background:
@@ -792,95 +803,51 @@ with st.sidebar:
     if is_light_theme:
         st.markdown("""
         <style>
-        :root { color-scheme: light; }
-        .stApp {
-            background: linear-gradient(145deg,#f4f7fb 0%,#eaf0f8 55%,#f8fafc 100%) !important;
-            color: #172033 !important;
+        /* Light palette: same design tokens, contrast-safe values. */
+        :root {
+            color-scheme: light;
+            --gym-bg: #f1f5fb;
+            --gym-surface: #ffffff;
+            --gym-surface-raised: #f8fafc;
+            --gym-surface-input: #ffffff;
+            --gym-border: #d5dfeb;
+            --gym-border-strong: #aebed0;
+            --gym-text: #334155;
+            --gym-heading: #172033;
+            --gym-muted: #475569;
+            --gym-subtle: #64748b;
+            --gym-accent: #0f766e;
+            --gym-accent-strong: #115e59;
+            --gym-blue: #1d4ed8;
+            --gym-button-text: #ffffff;
+            --gym-focus-ring: rgba(15,118,110,.28);
         }
-        [data-testid="stHeader"] { background:rgba(244,247,251,.94) !important; }
+        .stApp, [data-testid="stMain"] {
+            background: linear-gradient(145deg,#f4f7fb 0%,#eaf0f8 55%,#f8fafc 100%) !important;
+            color: var(--gym-text) !important;
+        }
+        [data-testid="stHeader"] {
+            background: rgba(244,247,251,.96) !important;
+        }
         [data-testid="stSidebar"] {
-            background:linear-gradient(180deg,#ffffff 0%,#eef3f9 100%) !important;
-            border-right:1px solid #d4deeb !important;
+            background: linear-gradient(180deg,#ffffff 0%,#eef3f9 100%) !important;
+            border-right: 1px solid var(--gym-border) !important;
         }
         [data-testid="stSidebar"] p,
         [data-testid="stSidebar"] span,
         [data-testid="stSidebar"] label,
         [data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
-            color:#334155 !important;
-        }
-        /* Limit light text overrides to Streamlit-generated text, not custom dark workout cards. */
-        [data-testid="stMainBlockContainer"] > div > div > div > p,
-        [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > p,
-        [data-testid="stMainBlockContainer"] [data-testid="stCaptionContainer"],
-        [data-testid="stMainBlockContainer"] label,
-        [data-testid="stMainBlockContainer"] li {
-            color:#263449 !important;
-        }
-        [data-testid="stMainBlockContainer"] h1,
-        [data-testid="stMainBlockContainer"] h2,
-        [data-testid="stMainBlockContainer"] h3,
-        [data-testid="stMainBlockContainer"] h4,
-        [data-testid="stMainBlockContainer"] h5 {
-            color:#172033 !important;
-            text-shadow:none !important;
-        }
-        [data-testid="stMetric"] {
-            background:linear-gradient(145deg,#ffffff,#f0f5fb) !important;
-            border:1px solid #d3deeb !important;
-            box-shadow:0 5px 16px rgba(31,55,86,.07) !important;
-        }
-        [data-testid="stMetricLabel"] { color:#475569 !important; }
-        [data-testid="stMetricValue"] { color:#0f172a !important; }
-        .stButton > button, [data-testid="stDownloadButton"] button {
-            background:linear-gradient(120deg,#0f766e,#1d4ed8) !important;
-            color:#ffffff !important;
-            border:1px solid #b8d6e7 !important;
-        }
-        .stTextInput input, .stTextArea textarea, .stNumberInput input,
-        [data-baseweb="select"] > div {
-            background:#ffffff !important;
-            color:#172033 !important;
-            border-color:#b8c7d9 !important;
-        }
-        .stTextInput input::placeholder, .stTextArea textarea::placeholder {
-            color:#64748b !important;
-        }
-        .stTabs [data-baseweb="tab"] { color:#475569 !important; }
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {
-            color:#0f766e !important;
-            border-bottom-color:#0f766e !important;
-        }
-        [data-testid="stExpander"] {
-            background:#ffffff !important;
-            border:1px solid #d3deeb !important;
-        }
-        [data-testid="stExpander"] summary,
-        [data-testid="stExpander"] summary p { color:#172033 !important; }
-        [data-testid="stAlert"] { color:#172033 !important; }
-        [data-testid="stDataFrame"], [data-testid="stTable"] {
-            border:1px solid #d3deeb !important;
-        }
-        hr { border-color:#d3deeb !important; }
-        .glass {
-            background:linear-gradient(145deg,#ffffff,#f1f5fb) !important;
-            border:1px solid #d3deeb !important;
-            box-shadow:0 6px 20px rgba(31,55,86,.06) !important;
-        }
-
-        /* High-contrast light mode: cover Streamlit and custom HTML widgets. */
-        [data-testid="stMain"] {
-            background:linear-gradient(145deg,#f4f7fb 0%,#eaf0f8 55%,#f8fafc 100%) !important;
+            color: var(--gym-text) !important;
         }
         [data-testid="stMainBlockContainer"] {
-            background:transparent !important;
-            color:#172033 !important;
+            color: var(--gym-text) !important;
         }
         [data-testid="stMainBlockContainer"] p,
         [data-testid="stMainBlockContainer"] li,
         [data-testid="stMainBlockContainer"] label,
         [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"],
         [data-testid="stMainBlockContainer"] [data-testid="stCaptionContainer"] {
-            color:#263449 !important;
+            color: var(--gym-text) !important;
         }
         [data-testid="stMainBlockContainer"] h1,
         [data-testid="stMainBlockContainer"] h2,
@@ -888,93 +855,74 @@ with st.sidebar:
         [data-testid="stMainBlockContainer"] h4,
         [data-testid="stMainBlockContainer"] h5,
         [data-testid="stMainBlockContainer"] h6 {
-            color:#172033 !important;
-            -webkit-text-fill-color:#172033 !important;
-            text-shadow:none !important;
+            color: var(--gym-heading) !important;
+            -webkit-text-fill-color: var(--gym-heading) !important;
+            text-shadow: none !important;
         }
-        /* Override inline dark text/background in custom cards, tips, timers and stats. */
-        [data-testid="stMainBlockContainer"] [style*="background:#0d1117"],
-        [data-testid="stMainBlockContainer"] [style*="background: #0d1117"],
-        [data-testid="stMainBlockContainer"] [style*="background:#101a2b"],
-        [data-testid="stMainBlockContainer"] [style*="background:#0b1423"],
-        [data-testid="stMainBlockContainer"] [style*="background:rgba(16,26,43"],
-        [data-testid="stMainBlockContainer"] [style*="background: linear-gradient(145deg,#142238"],
-        [data-testid="stMainBlockContainer"] [style*="background:linear-gradient(145deg,#142238"] {
-            background:#ffffff !important;
-            border-color:#d3deeb !important;
-            box-shadow:0 3px 12px rgba(31,55,86,.06) !important;
+        [data-testid="stMetric"] {
+            background: linear-gradient(145deg,#ffffff,#f0f5fb) !important;
+            border: 1px solid var(--gym-border) !important;
+            border-radius: var(--gym-radius-card) !important;
+            box-shadow: 0 5px 16px rgba(31,55,86,.07) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="color:#e2e8f0"],
-        [data-testid="stMainBlockContainer"] [style*="color: #e2e8f0"],
-        [data-testid="stMainBlockContainer"] [style*="color:#f8fafc"],
-        [data-testid="stMainBlockContainer"] [style*="color: #f8fafc"],
-        [data-testid="stMainBlockContainer"] [style*="color:#cbd5e1"],
-        [data-testid="stMainBlockContainer"] [style*="color: #cbd5e1"],
-        [data-testid="stMainBlockContainer"] [style*="color:#94a3b8"],
-        [data-testid="stMainBlockContainer"] [style*="color: #94a3b8"],
-        [data-testid="stMainBlockContainer"] [style*="color:#64748b"],
-        [data-testid="stMainBlockContainer"] [style*="color: #64748b"] {
-            color:#334155 !important;
-            -webkit-text-fill-color:#334155 !important;
+        [data-testid="stMetricLabel"] { color: var(--gym-muted) !important; }
+        [data-testid="stMetricValue"] { color: var(--gym-heading) !important; }
+        .stButton > button, [data-testid="stDownloadButton"] button {
+            background: linear-gradient(120deg,#0f766e,#1d4ed8) !important;
+            color: var(--gym-button-text) !important;
+            border: 1px solid #b8d6e7 !important;
+            border-radius: var(--gym-radius-control) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="background:#1e2d40"],
-        [data-testid="stMainBlockContainer"] [style*="background: #1e2d40"] {
-            background:#dbe5f0 !important;
+        .stTextInput input, .stTextArea textarea, .stNumberInput input,
+        [data-baseweb="select"] > div {
+            background: var(--gym-surface-input) !important;
+            color: var(--gym-heading) !important;
+            border-color: var(--gym-border-strong) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="background:#142238"],
-        [data-testid="stMainBlockContainer"] [style*="background: #142238"] {
-            background:#ffffff !important;
+        .stTextInput input::placeholder, .stTextArea textarea::placeholder {
+            color: var(--gym-subtle) !important;
+            opacity: 1 !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="background:linear-gradient(135deg,#10233b"],
-        [data-testid="stMainBlockContainer"] [style*="background: linear-gradient(135deg,#10233b"] {
-            background:linear-gradient(135deg,#ffffff,#edf4fb) !important;
-            border-color:#cbd9e8 !important;
+        .stTabs [data-baseweb="tab"] { color: var(--gym-muted) !important; }
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            color: var(--gym-accent-strong) !important;
+            border-bottom-color: var(--gym-accent) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="color:#93c5fd"],
-        [data-testid="stMainBlockContainer"] [style*="color: #93c5fd"] {
-            color:#1d4ed8 !important;
+        [data-testid="stExpander"] {
+            background: var(--gym-surface) !important;
+            border: 1px solid var(--gym-border) !important;
+            border-radius: var(--gym-radius-control) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="color:#60a5fa"],
-        [data-testid="stMainBlockContainer"] [style*="color: #60a5fa"] {
-            color:#1d4ed8 !important;
-            -webkit-text-fill-color:#1d4ed8 !important;
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] summary p,
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"] {
+            color: var(--gym-heading) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="color:#475569"],
-        [data-testid="stMainBlockContainer"] [style*="color: #475569"] {
-            color:#334155 !important;
+        [data-testid="stAlert"] {
+            color: var(--gym-heading) !important;
+            border-color: var(--gym-border) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="background:#052e16"] {
-            background:#e8f8ef !important;
-            border-color:#86d6a6 !important;
+        [data-testid="stDataFrame"], [data-testid="stTable"] {
+            border: 1px solid var(--gym-border) !important;
+            border-radius: var(--gym-radius-control) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="color:#22c55e"] {
-            color:#166534 !important;
+        .glass {
+            background: linear-gradient(145deg,#ffffff,#f1f5fb) !important;
+            border: 1px solid var(--gym-border) !important;
+            box-shadow: 0 6px 20px rgba(31,55,86,.06) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="background:#1c0a00"] {
-            background:#fff7ed !important;
-            border-color:#fdba74 !important;
+        input:focus, textarea:focus, [data-baseweb="select"]:focus-within {
+            border-color: var(--gym-accent) !important;
+            box-shadow: 0 0 0 2px var(--gym-focus-ring) !important;
         }
-        [data-testid="stMainBlockContainer"] [style*="color:#f97316"] {
-            color:#9a3412 !important;
-        }
-        [data-testid="stMainBlockContainer"] [style*="background:#0b1423"],
-        [data-testid="stMainBlockContainer"] [style*="background: #0b1423"] {
-            background:#ffffff !important;
-        }
-        [data-testid="stMainBlockContainer"] [style*="background:linear-gradient(90deg"] {
-            color:#172033 !important;
-        }
-        [data-testid="stMainBlockContainer"] [data-testid="stProgressBar"] > div {
-            background:#dbe5f0 !important;
-        }
-        [data-testid="stMainBlockContainer"] [data-testid="stExpander"] p,
-        [data-testid="stMainBlockContainer"] [data-testid="stAlert"] p {
-            color:#263449 !important;
-        }
+        hr { border-color: var(--gym-border) !important; }
         @media (max-width:768px) {
             [data-testid="stMainBlockContainer"] h1 { font-size:1.55rem !important; }
             [data-testid="stMainBlockContainer"] p,
             [data-testid="stMainBlockContainer"] label { line-height:1.45 !important; }
+            .stButton > button, [data-testid="stDownloadButton"] button {
+                min-height:46px !important;
+            }
         }
         </style>
         """, unsafe_allow_html=True)
@@ -1162,9 +1110,17 @@ with tab1:
         for ex in exercises:
             key = f"{menu}_{ex['name']}"
             is_done = st.session_state.checked.get(key, False)
-            bg = f"{color}18" if is_done else "#0d1117"
-            border = color if is_done else "#1e2d40"
-            nc = color if is_done else "#e2e8f0"
+            # Theme-aware card colors (avoid relying on brittle CSS overrides of inline HTML).
+            if is_light_theme:
+                bg = f"{color}18" if is_done else "#ffffff"
+                border = color if is_done else "#d5dfeb"
+                nc = color if is_done else "#172033"
+                tip_color = "#475569"
+            else:
+                bg = f"{color}18" if is_done else "#0d1117"
+                border = color if is_done else "#1e2d40"
+                nc = color if is_done else "#e2e8f0"
+                tip_color = "#94a3b8"
             strike = "line-through" if is_done else "none"
 
             st.markdown(f"""
@@ -1172,7 +1128,7 @@ with tab1:
                         background:{bg};border:1px solid {border};margin:8px 0 4px;'>
                 <div style='font-size:15px;font-weight:700;color:{nc};
                             text-decoration:{strike};'>{ex["name"]}</div>
-                <div style='font-size:12px;color:#94a3b8;margin-top:3px;'>💡 {ex["tip"]}</div>
+                <div style='font-size:12px;color:{tip_color};margin-top:3px;'>💡 {ex["tip"]}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1384,8 +1340,15 @@ with tab1:
         for i, (day, hindi) in enumerate(days_hindi.items()):
             with cols7[i]:
                 val    = st.session_state.weekly.get(day, False)
-                bg_day = color  if val else "#1e2d40"
-                tc     = "#000" if val else "#64748b"
+                if val:
+                    bg_day = color
+                    tc = "#000000"
+                elif is_light_theme:
+                    bg_day = "#e8eef6"
+                    tc = "#475569"
+                else:
+                    bg_day = "#1e2d40"
+                    tc = "#64748b"
                 st.markdown(f"""
                 <div style='background:{bg_day};border-radius:8px;padding:6px 2px;
                             text-align:center;
