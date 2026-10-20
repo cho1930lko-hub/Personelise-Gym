@@ -12,7 +12,7 @@ st.set_page_config(
     page_title="💪 GYM AI Dashboard",
     page_icon="🏋️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ─────────────────────────────────────────────
@@ -102,10 +102,56 @@ hr { border-color: #1e2d40 !important; }
 }
 .progress-fill { transition: width 0.5s ease-in-out; }
 @media (max-width: 768px) {
-    h1 { font-size: 22px !important; }
-    .block-container { padding: 1rem !important; }
-    .stMetric { font-size: 12px !important; }
-    .stTabs [data-baseweb="tab"] { font-size: 13px !important; }
+    /* Mobile-first layout: give the workout area the full screen width. */
+    .main .block-container, [data-testid="stMainBlockContainer"] {
+        padding: .75rem .65rem 2rem !important;
+        max-width: 100% !important;
+    }
+    h1 { font-size: 22px !important; line-height: 1.2 !important; }
+    h2 { font-size: 20px !important; line-height: 1.25 !important; }
+    h3 { font-size: 18px !important; line-height: 1.25 !important; }
+    p, label, [data-testid="stCaptionContainer"] {
+        overflow-wrap: anywhere;
+    }
+    [data-testid="stMetric"] {
+        padding: 10px !important;
+        min-width: 0 !important;
+    }
+    [data-testid="stMetricValue"] { font-size: 1.25rem !important; }
+    [data-testid="stMetricLabel"] { font-size: .75rem !important; }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2px !important;
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 12px !important;
+        padding: 8px 9px !important;
+        white-space: nowrap !important;
+    }
+    .stButton > button, [data-testid="stDownloadButton"] button {
+        min-height: 42px !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        padding: 8px 10px !important;
+    }
+    .stTextInput input, .stNumberInput input, .stTextArea textarea,
+    [data-baseweb="select"] {
+        font-size: 16px !important;
+    }
+    .glass {
+        padding: 12px !important;
+        border-radius: 13px !important;
+    }
+    [data-testid="stDataFrame"] { max-width: 100% !important; }
+}
+@media (max-width: 420px) {
+    .main .block-container, [data-testid="stMainBlockContainer"] {
+        padding-left: .45rem !important;
+        padding-right: .45rem !important;
+    }
+    .stTabs [data-baseweb="tab"] { font-size: 11px !important; padding: 7px 6px !important; }
+    [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
 }
 </style>
 """, unsafe_allow_html=True)
