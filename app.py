@@ -1858,7 +1858,7 @@ with tab3:
         if st.button("🔥 Fat Loss Tips", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
                 ans = ask_ai("Fat loss के लिए best tips दो।", st.session_state.workout_log)
-            st.success(ans)
+            render_ai_answer(ans)
     with q2:
         if st.button("📈 Strength बढ़ाओ", use_container_width=True):
             with st.spinner("AI सोच रहा है..."):
