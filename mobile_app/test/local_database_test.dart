@@ -1,6 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personelise_gym/data/local/local_database.dart';
+import 'package:personelise_gym/data/local/secure_database_key_store.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+class _MemorySecureStore implements SecureKeyValueStore {
+  final Map<String, String> values = {};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    values[key] = value;
+  }
+}
 
 void main() {
   setUpAll(() {
@@ -11,7 +24,29 @@ void main() {
   late LocalDatabase localDatabase;
 
   setUp(() {
-    localDatabase = LocalDatabase(databasePath: inMemoryDatabasePath);
+    final secureStore = _MemorySecureStore();
+    localDatabase = LocalDatabase(
+      databasePath: inMemoryDatabasePath,
+      keyProvider: SecureDatabaseKeyProvider(store: secureStore),
+      databaseOpener: ({
+        required path,
+        required password,
+        required version,
+        required onConfigure,
+        required onCreate,
+      }) {
+        // FFI is used only for deterministic unit tests. Production uses the
+        // SQLCipher opener in LocalDatabase and passes the secure key.
+        return databaseFactoryFfi.openDatabase(
+          path,
+          options: OpenDatabaseOptions(
+            version: version,
+            onConfigure: onConfigure,
+            onCreate: onCreate,
+          ),
+        );
+      },
+    );
   });
 
   tearDown(() async {
@@ -64,6 +99,7 @@ void main() {
     expect(queue, hasLength(1));
     expect(queue.single['record_id'], logs.single['record_id']);
   });
+
   test('updating a profile does not delete its existing workouts', () async {
     await localDatabase.upsertProfile(userId: 'user-a', displayName: 'Person A');
     await localDatabase.addWorkoutLog(
@@ -86,5 +122,4 @@ void main() {
     expect(logs, hasLength(1));
     expect(logs.single['exercise_name'], 'Squat');
   });
-
 }
