@@ -26,6 +26,12 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Generate Android platform files when absent
+        run: |
+          if [ ! -d android ]; then
+            flutter create --platforms=android --project-name personelise_gym .
+          fi
+
       - name: Resolve dependencies
         run: flutter pub get
 
@@ -34,3 +40,14 @@ jobs:
 
       - name: Run widget tests
         run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: personelise-gym-debug-apk
+          path: mobile_app/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
