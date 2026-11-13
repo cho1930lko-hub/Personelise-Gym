@@ -17,6 +17,7 @@ on:
 jobs:
   flutter-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: mobile_app
@@ -49,6 +50,7 @@ jobs:
         run: flutter test
 
       - name: Verify SQLCipher on Android emulator
+        timeout-minutes: 22
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -58,7 +60,17 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 600
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
-          script: cd mobile_app && flutter test integration_test/sqlcipher_database_test.dart -d emulator-5554
+          script: timeout --signal=TERM --kill-after=30s 12m bash -o pipefail -c 'cd mobile_app && flutter test integration_test/sqlcipher_database_test.dart -d emulator-5554 --reporter expanded'
+
+      - name: Collect Android emulator diagnostics on failure
+        if: failure()
+        run: |
+          echo '--- Connected Android devices ---'
+          adb devices -l || true
+          echo '--- Emulator properties ---'
+          adb shell getprop ro.build.version.sdk || true
+          echo '--- Recent emulator logcat ---'
+          adb logcat -d -t 1500 || true
 
       - name: Build debug APK
         run: flutter build apk --debug
