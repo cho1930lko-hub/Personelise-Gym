@@ -154,7 +154,7 @@ class LocalDatabase {
         'created_at': now,
         'updated_at': now,
       },
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      conflictAlgorithm: ConflictAlgorithm.update,
     );
   }
 
