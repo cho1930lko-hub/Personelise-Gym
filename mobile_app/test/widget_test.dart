@@ -5,7 +5,7 @@ void main() {
   testWidgets('app shell renders navigation destinations', (tester) async {
     await tester.pumpWidget(const PersoneliseApp());
 
-    expect(find.text('Your fitness'), findsOneWidget);
+    expect(find.text('Your fitness'), findsNWidgets(2));
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Workout'), findsOneWidget);
     expect(find.text('Progress'), findsOneWidget);
