@@ -64,4 +64,27 @@ void main() {
     expect(queue, hasLength(1));
     expect(queue.single['record_id'], logs.single['record_id']);
   });
+  test('updating a profile does not delete its existing workouts', () async {
+    await localDatabase.upsertProfile(userId: 'user-a', displayName: 'Person A');
+    await localDatabase.addWorkoutLog(
+      userId: 'user-a',
+      workoutDate: DateTime.utc(2026, 11, 13),
+      muscleGroup: 'Legs',
+      exerciseName: 'Squat',
+      sets: [
+        {'weight_kg': 50, 'reps': 8},
+      ],
+    );
+
+    await localDatabase.upsertProfile(
+      userId: 'user-a',
+      displayName: 'Person A Updated',
+      heightCm: 172,
+    );
+
+    final logs = await localDatabase.getWorkoutLogs('user-a');
+    expect(logs, hasLength(1));
+    expect(logs.single['exercise_name'], 'Squat');
+  });
+
 }
