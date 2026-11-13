@@ -51,11 +51,13 @@ jobs:
       - name: Verify SQLCipher on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 34
           target: google_apis
           arch: x86_64
           profile: pixel_2
           disable-animations: true
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           script: flutter test integration_test/sqlcipher_database_test.dart -d emulator-5554
 
       - name: Build debug APK
