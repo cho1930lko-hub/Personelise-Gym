@@ -1,5 +1,9 @@
 name: Flutter Android checks
 
+concurrency:
+  group: flutter-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
