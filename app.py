@@ -593,18 +593,31 @@ def ensure_worksheets(sheet):
     if bs.row_values(1) == []:
         bs.append_row(["Date","Body Weight","Goal Weight","BMI"])
 
-def gsheet_save_workout(entry):
+def gsheet_save_workouts(entries):
+    """Append a complete exercise's sets in one Sheets request."""
     try:
         sheet = get_sheet()
-        if not sheet: return False
+        if not sheet:
+            return False
+        if not entries:
+            return True
         ws = sheet.worksheet("WorkoutLog")
-        ws.append_row([
-            entry["Date"], entry["Time"], entry["Body Part"],
-            entry["Exercise"], entry["Weight (kg)"], entry["Status"]
-        ])
+        rows = [
+            [
+                entry["Date"], entry["Time"], entry["Body Part"],
+                entry["Exercise"], entry["Weight (kg)"], entry["Status"]
+            ]
+            for entry in entries
+        ]
+        ws.append_rows(rows, value_input_option="USER_ENTERED")
         return True
     except Exception:
         return False
+
+
+def gsheet_save_workout(entry):
+    """Backward-compatible single-row save helper."""
+    return gsheet_save_workouts([entry])
 
 def gsheet_load_workouts():
     try:
@@ -626,12 +639,19 @@ def gsheet_save_body_stats(bw, gw):
         bs.append_row([date.today().strftime("%d-%m-%Y"), bw, gw, bmi])
         # Settings (latest values)
         sw = sheet.worksheet("Settings")
-        sw.clear()
-        sw.append_row(["Key", "Value"])
-        sw.append_row(["body_weight", bw])
-        sw.append_row(["goal_weight", gw])
-        sw.append_row(["streak",      st.session_state.get("streak", 0)])
-        sw.append_row(["last_workout",st.session_state.get("last_workout", "")])
+        settings_rows = [
+            ["Key", "Value"],
+            ["body_weight", bw],
+            ["goal_weight", gw],
+            ["streak", st.session_state.get("streak", 0)],
+            ["last_workout", st.session_state.get("last_workout", "")],
+        ]
+        # Update only the app-owned cells; do not clear the whole worksheet.
+        sw.update(
+            values=settings_rows,
+            range_name=f"A1:B{len(settings_rows)}",
+            value_input_option="USER_ENTERED",
+        )
         return True
     except Exception:
         return False
@@ -650,12 +670,19 @@ def gsheet_save_weekly(weekly_dict):
     try:
         sheet = get_sheet()
         if not sheet: return False
-        ws       = sheet.worksheet("WeeklyTracker")
-        ws.clear()
-        ws.append_row(["Day", "Done", "Week"])
+        ws = sheet.worksheet("WeeklyTracker")
         week_num = date.today().isocalendar()[1]
-        for day, done in weekly_dict.items():
-            ws.append_row([day, str(done), week_num])
+        weekly_rows = [["Day", "Done", "Week"]]
+        weekly_rows.extend(
+            [day, str(bool(done)), week_num]
+            for day, done in weekly_dict.items()
+        )
+        # The tracker is a fixed app-managed range. Preserve the rest of the sheet.
+        ws.update(
+            values=weekly_rows,
+            range_name=f"A1:C{len(weekly_rows)}",
+            value_input_option="USER_ENTERED",
+        )
         return True
     except Exception:
         return False
@@ -1418,17 +1445,17 @@ with tab1:
                         st.session_state.checked[key] = True
                         st.session_state.rest_timer = 60
                         local_saved = save_data()
-                        failed_saves = sum(1 for entry in entries if not gsheet_save_workout(entry))
+                        sheets_saved = gsheet_save_workouts(entries)
                         if not local_saved:
                             st.error(
-                                "⚠️ लोकल बैकअप फ़ाइल में सेव नहीं हो पाया। "
-                                "यह ऐप के सर्वर पर स्थायी बैकअप की गारंटी नहीं देता; Google Sheets स्थिति भी जाँचें।"
+                                "⚠️ लोकल फ़ाइल में सेव नहीं हो पाया। "
+                                "यह फ़ाइल Cloud पर स्थायी बैकअप नहीं है; Google Sheets भी जाँचें।"
                             )
-                        if failed_saves:
+                        if not sheets_saved:
                             st.warning(
-                                f"{len(entries) - failed_saves}/{len(entries)} सेट Google Sheets में सेव होने की पुष्टि हुई। "
-                                "कुछ अनुरोध विफल हुए या उनका परिणाम अनिश्चित है। दोबारा सेव करने से डुप्लिकेट बन सकते हैं; "
-                                "पहले WorkoutLog शीट में तारीख, समय और एक्सरसाइज़ जाँचें।"
+                                "Google Sheets में पूरे सेट batch की सेविंग की पुष्टि नहीं हुई। "
+                                "Request का परिणाम अनिश्चित हो सकता है। दोबारा सेव करने से पहले "
+                                "WorkoutLog में तारीख, समय और एक्सरसाइज़ जाँचें ताकि duplicate न बनें।"
                             )
                         else:
                             st.success(f"{len(entries)} सेट Google Sheets में सेव होने की पुष्टि हुई — {ex['name']} 💪")
@@ -1877,6 +1904,40 @@ with tab2:
                 st.rerun()
     else:
         st.info("📋 अभी कोई workout log नहीं है। Workout tab में exercise चुनकर सेट सेव करें; रिकॉर्ड यहाँ दिखाई देगा।")
+
+    st.markdown("---")
+    st.markdown("### 🛡️ Data Backup")
+    backup_payload = {
+        "format": "personelise_gym_backup",
+        "format_version": 1,
+        "exported_at": datetime.now().astimezone().isoformat(),
+        "workout_log": st.session_state.get("workout_log", []),
+        "body_stats_history": (
+            gsheet_load_body_stats_history() if sheet_obj else []
+        ),
+        "settings": {
+            "streak": st.session_state.get("streak", 0),
+            "last_workout": st.session_state.get("last_workout", ""),
+            "body_weight": st.session_state.get("body_weight", 70.0),
+            "goal_weight": st.session_state.get("goal_weight", 65.0),
+        },
+        "weekly_tracker": st.session_state.get("weekly", {}),
+        "exercise_checklist": st.session_state.get("checked", {}),
+        "google_sheets_connected": bool(sheet_obj),
+    }
+    st.download_button(
+        "⬇️ पूरा Gym Data Backup (JSON)",
+        data=json.dumps(backup_payload, ensure_ascii=False, indent=2).encode("utf-8"),
+        file_name=f"personelise_gym_backup_{date.today().isoformat()}.json",
+        mime="application/json",
+        use_container_width=True,
+        key="download_full_gym_backup",
+    )
+    st.caption(
+        "इस backup में ऐप का Workout Log, Body Stats history (Google Sheets उपलब्ध होने पर), "
+        "Weekly Tracker और Settings शामिल हैं। इसे नियमित रूप से सुरक्षित जगह पर डाउनलोड करें। "
+        "यह export-only backup है; restore/import सुविधा अलग से लागू की जाएगी।"
+    )
 
 # ══════════════════════════════════════════
 # TAB 3 — AI COACH
