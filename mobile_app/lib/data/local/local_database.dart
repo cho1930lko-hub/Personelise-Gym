@@ -1,13 +1,32 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:path/path.dart' as p;
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
+import 'secure_database_key_store.dart';
+
+typedef DatabaseOpener = Future<Database> Function({
+  required String path,
+  required String password,
+  required int version,
+  required FutureOr<void> Function(Database db) onConfigure,
+  required FutureOr<void> Function(Database db, int version) onCreate,
+});
+
 class LocalDatabase {
-  LocalDatabase({this.databasePath});
+  LocalDatabase({
+    this.databasePath,
+    SecureDatabaseKeyProvider? keyProvider,
+    DatabaseOpener? databaseOpener,
+  })  : _keyProvider = keyProvider ??
+            SecureDatabaseKeyProvider(store: FlutterSecureKeyValueStore()),
+        _databaseOpener = databaseOpener;
 
   final String? databasePath;
+  final SecureDatabaseKeyProvider _keyProvider;
+  final DatabaseOpener? _databaseOpener;
   static const _databaseName = 'personelise_gym.db';
   static const _databaseVersion = 1;
   static const _uuid = Uuid();
@@ -17,14 +36,28 @@ class LocalDatabase {
   Future<Database> get database async {
     if (_instance != null) return _instance!;
     final path = databasePath ?? p.join(await getDatabasesPath(), _databaseName);
-    _instance = await openDatabase(
-      path,
-      version: _databaseVersion,
-      onConfigure: (db) async {
-        await db.execute('PRAGMA foreign_keys = ON');
-      },
-      onCreate: _createSchema,
-    );
+    final password = await _keyProvider.getOrCreateKey();
+
+    Future<void> configure(Database db) async {
+      await db.execute('PRAGMA foreign_keys = ON');
+    }
+
+    final opener = _databaseOpener;
+    _instance = opener == null
+        ? await openDatabase(
+            path,
+            password: password,
+            version: _databaseVersion,
+            onConfigure: configure,
+            onCreate: _createSchema,
+          )
+        : await opener(
+            path: path,
+            password: password,
+            version: _databaseVersion,
+            onConfigure: configure,
+            onCreate: _createSchema,
+          );
     return _instance!;
   }
 
