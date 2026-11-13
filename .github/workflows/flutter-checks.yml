@@ -36,6 +36,9 @@ jobs:
             flutter create --platforms=android --project-name personelise_gym .
           fi
 
+      - name: Apply Android SQLCipher and secure-storage settings
+        run: bash tool/configure_android_security.sh
+
       - name: Resolve dependencies
         run: flutter pub get
 
