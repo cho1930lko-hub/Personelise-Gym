@@ -133,7 +133,15 @@ API key कभी GitHub पर commit न करें। AI configuration न 
 
 > पुराने निर्देशों में `gym_dashboard.py` और नई repository बनाने की बात थी। वे इस repository के वर्तमान structure से मेल नहीं खाते। मौजूदा repository ही चुनें और entry file `app.py` रखें।
 
-## 6. Tests और GitHub Actions
+## 6. Backup और data safety
+
+Log & Stats tab में **Data Backup** section से **पूरा Gym Data Backup (JSON)** डाउनलोड करें। इसमें मौजूदा Workout Log, Google Sheets उपलब्ध होने पर Body Stats history, Weekly Tracker, exercise checklist और app settings शामिल हैं। इसे नियमित रूप से डाउनलोड करके सुरक्षित स्थान पर रखें।
+
+यह अभी export-only सुविधा है; JSON import/restore UI उपलब्ध नहीं है। Google Sheet को persistent primary data source मानें और उसकी अलग नियमित copy भी रखें। Backup में API keys या service-account credentials शामिल नहीं किए जाते।
+
+Settings और WeeklyTracker अब पूरी worksheet को clear नहीं करते; app केवल अपने निश्चित A:B और A:C ranges update करता है। इन ranges को app के लिए reserve रखें। Multi-set workout entries एक batch append request से जाती हैं। अगर save result uncertain हो, retry से पहले WorkoutLog में entry जाँचें ताकि duplicate न बने।
+
+## 7. Tests और GitHub Actions
 
 Local checks चलाएँ:
 
@@ -146,7 +154,7 @@ GitHub Actions workflow `.github/workflows/python-smoke-checks.yml` इन check
 
 ध्यान दें: मौजूदा tests static/smoke checks हैं। ये live Google Sheets credentials, Groq API, browser UI या deployed app के end-to-end behaviour को verify नहीं करते।
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | समस्या | क्या जाँचें |
 |---|---|
@@ -156,7 +164,7 @@ GitHub Actions workflow `.github/workflows/python-smoke-checks.yml` इन check
 | Save warning दिखती है | Local save और Google Sheets save अलग-अलग जाँचें; sheet में record मौजूद है या नहीं verify करें |
 | Deploy के बाद local data गायब है | Cloud local file को permanent storage न मानें; Google Sheets integration configure करें |
 
-## 8. Security checklist
+## 9. Security checklist
 
 - [ ] API keys और service-account JSON को GitHub पर upload/commit न करें।
 - [ ] Local `.streamlit/secrets.toml` को `.gitignore` में रखें।
