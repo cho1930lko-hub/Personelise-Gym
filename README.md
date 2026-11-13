@@ -56,6 +56,10 @@ GitHub Actions runs these checks on pushes and pull requests targeting `main`, a
 
 ## Important data notes
 
+- The app now provides a **Data Backup** download in the Log & Stats tab. It exports the current workout log, available Google Sheets body-stat history, weekly tracker, checklist and settings as a JSON file. Download it regularly and store it somewhere safe.
+- This JSON feature is an export-only backup. Automated import/restore is not yet implemented; keep the connected Google Sheet as the primary persistent data source and retain independent copies.
+- Google Sheets writes for Settings and WeeklyTracker now update only their app-managed cell ranges instead of clearing entire worksheets. Keep those managed ranges reserved for the app.
+- Multiple sets for one exercise are appended to WorkoutLog in a single batch request, reducing partial per-set writes. If a request reports an uncertain result, inspect the sheet before retrying to avoid duplicates.
 - For persistent, cross-session workout and body-history records on Streamlit Cloud, configure Google Sheets. The local `gym_data.json` fallback is not a guaranteed permanent cloud backup.
 - The app creates/uses these Google Sheets tabs: `WorkoutLog`, `BodyStats`, `WeeklyTracker`, and `Settings`.
 - The current implementation rewrites the contents of `WeeklyTracker` and `Settings` when saving those values. Do not store unrelated/manual data in those tabs.
