@@ -56,6 +56,28 @@ class AppSmokeTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, SOURCE)
 
+    def test_google_sheets_saves_use_batched_non_destructive_updates(self):
+        self.assertIn("ws.append_rows(rows, value_input_option=\"USER_ENTERED\")", SOURCE)
+        self.assertIn('range_name=f"A1:B{len(settings_rows)}"', SOURCE)
+        self.assertIn('range_name=f"A1:C{len(weekly_rows)}"', SOURCE)
+        self.assertNotIn("sw.clear()", SOURCE)
+        self.assertNotIn("ws.clear()", SOURCE)
+
+    def test_full_json_backup_export_is_available(self):
+        self.assertIn('"format": "personelise_gym_backup"', SOURCE)
+        self.assertIn('"body_stats_history"', SOURCE)
+        self.assertIn('"weekly_tracker"', SOURCE)
+        self.assertIn('"exercise_checklist"', SOURCE)
+        self.assertIn('key="download_full_gym_backup"', SOURCE)
+        self.assertIn('mime="application/json"', SOURCE)
+
+    def test_local_secrets_and_runtime_data_are_ignored(self):
+        ignore_file = ROOT / ".gitignore"
+        ignore_text = ignore_file.read_text(encoding="utf-8")
+        for marker in (".streamlit/secrets.toml", "gym_data.json", "gym_data.json.tmp"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, ignore_text)
+
     def test_existing_workout_log_schema_is_still_referenced(self):
         for field in ('"Date"', '"Time"', '"Body Part"', '"Exercise"', '"Weight (kg)"', '"Status"'):
             with self.subTest(field=field):
