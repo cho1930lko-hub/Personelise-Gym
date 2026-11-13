@@ -51,7 +51,7 @@ void main() {
 
   tearDown(() async => database.close());
 
-  DateTime get now => DateTime.utc(2026, 11, 13);
+  final now = DateTime.utc(2026, 11, 13);
 
   Future<void> createProfile(String userId) async {
     await repository.saveProfile(FitnessProfile(
