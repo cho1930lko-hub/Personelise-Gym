@@ -1,0 +1,36 @@
+name: Flutter Android checks
+
+on:
+  push:
+    branches:
+      - android/**
+  pull_request:
+    branches:
+      - main
+      - android/**
+  workflow_dispatch:
+
+jobs:
+  flutter-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile_app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze Dart code
+        run: flutter analyze --fatal-infos
+
+      - name: Run widget tests
+        run: flutter test
