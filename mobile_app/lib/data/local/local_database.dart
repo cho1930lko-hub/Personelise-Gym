@@ -143,19 +143,37 @@ class LocalDatabase {
   }) async {
     final db = await database;
     final now = DateTime.now().toUtc().toIso8601String();
-    await db.insert(
-      'profiles',
-      {
-        'user_id': userId,
+    await db.transaction((txn) async {
+      final existing = await txn.query(
+        'profiles',
+        columns: ['user_id'],
+        where: 'user_id = ?',
+        whereArgs: [userId],
+        limit: 1,
+      );
+      final values = <String, Object?>{
         'display_name': displayName.trim(),
         'height_cm': heightCm,
         'current_weight_kg': currentWeightKg,
         'goal_weight_kg': goalWeightKg,
-        'created_at': now,
         'updated_at': now,
-      },
-      conflictAlgorithm: ConflictAlgorithm.update,
-    );
+      };
+
+      if (existing.isEmpty) {
+        await txn.insert('profiles', {
+          'user_id': userId,
+          ...values,
+          'created_at': now,
+        });
+      } else {
+        await txn.update(
+          'profiles',
+          values,
+          where: 'user_id = ?',
+          whereArgs: [userId],
+        );
+      }
+    });
   }
 
   Future<String> addWorkoutLog({
