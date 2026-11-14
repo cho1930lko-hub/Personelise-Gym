@@ -46,7 +46,7 @@ for (const iterations of [2, 3, 100]) {
   const salt = 'dGVzdC1zYWx0';
   const actual = context.passwordHashWithIterations_('gym-pass', salt, iterations, 'server-pepper');
   const reference = expected('gym-pass', Buffer.from(salt, 'base64url'), iterations, 'server-pepper');
-  assert.equal(actual, reference, \`PBKDF2 mismatch at \${iterations} iterations\`);
+  assert.equal(actual, reference, `PBKDF2 mismatch at ${iterations} iterations`);
 }
 
 assert.throws(
