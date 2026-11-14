@@ -62,7 +62,8 @@ function doPost(e) {
       ? err.publicMessage
       : 'The request could not be completed.';
     const status = err && err.statusCode ? err.statusCode : 500;
-    return json_({ error: message }, status);
+    const code = status === 401 ? 'AUTH_INVALID' : 'REQUEST_FAILED';
+    return json_({ error: message, code: code }, status);
   }
 }
 
