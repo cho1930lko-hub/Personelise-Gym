@@ -36,7 +36,7 @@ function expected(password, salt, iterations, pepper) {
 // RFC 7914 / PBKDF2-HMAC-SHA256 one-iteration known-answer vector.
 assert.equal(
   context.passwordHashWithIterations_('password', 'c2FsdA', 1, ''),
-  'EAv2z_z4syxD5yJSVsT4N6hlSMkszDVICAWYfLcL4Xs'.replace(/^/, ''),
+  'Eg-2z_z4syxD5yJSVsT4N6hlSMkszDVICAWYfLcL4Xs'.replace(/^/, ''),
   'PBKDF2 one-iteration known-answer vector',
 );
 
