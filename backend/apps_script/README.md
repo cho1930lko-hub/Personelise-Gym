@@ -28,7 +28,8 @@ Signup/login return `access_token`, `user_id`, `email`, `display_name`, and `exp
 ## Important limitations and security gate
 
 - Apps Script ContentService does not let this web app set arbitrary HTTP response status codes; API errors are JSON `{error: "..."}` envelopes and the Flutter client checks the envelope.
-- The rate limit is per normalized email, not per IP/device. Apps Script is not a hardened identity platform and Google Sheets is not a high-security datastore.
+- Login attempts are reserved atomically per normalized email before password verification, preventing concurrent requests from bypassing the configured ceiling. The limit is still per email, not per IP/device, so it does not stop distributed attacks or targeted account lockout. Apps Script is not a hardened identity platform and Google Sheets is not a high-security datastore.
 - This initial backend only implements account creation, login, profile identity, and logout. It does not yet implement the per-user fitness-data sync API, email verification, password reset, account recovery, or refresh tokens.
+- Signup now neutralizes formula-leading display names before writing them to Sheets, validates existing tab headers, and rejects malformed/overlong token claims.
 - The code has not been executed against a deployed Apps Script project. Before production, run an independent security review and end-to-end tests with two synthetic users, including tampered/forged user IDs, modified tokens, token replay after logout, and cross-account read/write attempts.
 - Never point this backend at the existing Streamlit production spreadsheet. Create a separate spreadsheet and keep all test records synthetic.
