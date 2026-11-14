@@ -240,17 +240,25 @@ function validatePassword_(value) {
 
 // PBKDF2-HMAC-SHA256; pepper is stored only in Apps Script Script Properties.
 function passwordHash_(password, salt) {
-  const pepper = getProperty_('PASSWORD_PEPPER');
-  // Use the documented Byte[]/Byte[] overload: both the HMAC input and key
-  // are UTF-8/raw byte arrays. This is required for the PBKDF2 block loop.
-  const passwordKey = Utilities.newBlob(password + pepper).getBytes();
-  const saltBytes = Utilities.base64DecodeWebSafe(salt);
+  return passwordHashWithIterations_(
+    password, salt, CFG.PASSWORD_ITERATIONS, getProperty_('PASSWORD_PEPPER')
+  );
+}
+
+// Kept parameterized so the exact production implementation can be checked
+// against published PBKDF2-HMAC-SHA256 vectors without running 210,000 rounds.
+function passwordHashWithIterations_(password, salt, iterations, pepper) {
+  if (!Number.isSafeInteger(iterations) || iterations < 1 || iterations > 1000000) {
+    throw new Error('Invalid PBKDF2 iteration count.');
+  }
+  const passwordKey = Utilities.newBlob(String(password) + String(pepper)).getBytes();
+  const saltBytes = Utilities.base64DecodeWebSafe(String(salt));
   const block = saltBytes.concat([0, 0, 0, 1]);
   let u = Utilities.computeHmacSha256Signature(block, passwordKey);
   let result = u.slice();
-  for (let i = 1; i < CFG.PASSWORD_ITERATIONS; i++) {
+  for (let i = 1; i < iterations; i++) {
     u = Utilities.computeHmacSha256Signature(u, passwordKey);
-    for (let j = 0; j < result.length; j++) result[j] = result[j] ^ u[j];
+    for (let j = 0; j < result.length; j++) result[j] = (result[j] ^ u[j]) & 0xff;
   }
   return base64UrlBytes_(result);
 }
