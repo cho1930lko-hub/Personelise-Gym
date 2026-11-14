@@ -9,7 +9,15 @@ const source = fs.readFileSync(
   require('node:path').join(__dirname, '..', 'Code.gs'),
   'utf8',
 );
+let uuidCounter = 0;
 const Utilities = {
+  getUuid() {
+    const values = [
+      '123e4567-e89b-42d3-a456-426614174000',
+      '987e6543-e21b-43d2-b654-123456789abc',
+    ];
+    return values[uuidCounter++ % values.length];
+  },
   newBlob(value) {
     const bytes = Buffer.from(String(value), 'utf8');
     return { getBytes: () => Array.from(bytes) };
@@ -53,4 +61,9 @@ assert.throws(
   () => context.passwordHashWithIterations_('p', 'c2FsdA', 0, ''),
   /Invalid PBKDF2 iteration count/,
 );
+
+const salt = context.randomToken_(24);
+assert.equal(Buffer.from(salt, 'base64url').length, 24, 'salt must contain 24 random bytes');
+assert.notEqual(salt, context.randomToken_(24), 'successive salts must differ');
+assert.throws(() => context.randomToken_(8), /between 16 and 32 bytes/);
 console.log('Apps Script PBKDF2 implementation matches independent Node/OpenSSL vectors.');
