@@ -21,9 +21,9 @@ void main() {
         error: null,
         onModeChanged: (value) => signupMode = value,
         onSubmit: ({
-          required email,
-          required password,
-          required displayName,
+          required String email,
+          required String password,
+          required String displayName,
         }) async {},
       ),
     ));
