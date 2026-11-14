@@ -70,10 +70,13 @@ function doPost(e) {
 function signup_(body) {
   const email = normalizeEmail_(body.email);
   const password = validatePassword_(body.password);
-  const displayName = String(body.display_name || '').trim();
-  if (displayName.length < 2 || displayName.length > 80) {
+  const rawDisplayName = String(body.display_name || '').trim();
+  if (rawDisplayName.length < 2 || rawDisplayName.length > 80 ||
+      /[\\u0000-\\u001F\\u007F]/.test(rawDisplayName)) {
     throw publicError_('Enter a name between 2 and 80 characters.', 400);
   }
+  // Prevent user-controlled names from being interpreted as spreadsheet formulas.
+  const displayName = /^[=+@-]/.test(rawDisplayName) ? "'" + rawDisplayName : rawDisplayName;
 
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -102,7 +105,9 @@ function login_(body) {
   if (!password || password.length > 256) {
     throw publicError_('Email or password is incorrect.', 401);
   }
-  enforceRateLimit_(email);
+  // Reserve an attempt atomically before password verification. This prevents
+  // concurrent requests from bypassing the per-email attempt ceiling.
+  beginLoginAttempt_(email);
 
   const users = sheet_(CFG.USERS);
   const rows = users.getDataRange().getValues();
@@ -115,7 +120,6 @@ function login_(body) {
     clearRateLimit_(email);
     return json_(issueSession_(String(row[0]), email, String(row[4])));
   }
-  recordFailedLogin_(email);
   throw publicError_('Email or password is incorrect.', 401);
 }
 
@@ -164,7 +168,11 @@ function authenticate_(tokenValue) {
     throw publicError_('Session is invalid or expired. Please sign in again.', 401);
   }
   const now = Math.floor(Date.now() / 1000);
-  if (!payload.sub || !payload.exp || payload.exp <= now || payload.iat > now + 60) {
+  if (typeof payload.sub !== 'string' || !payload.sub ||
+      !Number.isSafeInteger(payload.iat) || !Number.isSafeInteger(payload.exp) ||
+      !payload.jti || payload.exp <= now || payload.iat > now + 60 ||
+      payload.exp <= payload.iat ||
+      payload.exp - payload.iat > CFG.TOKEN_TTL_SECONDS) {
     throw publicError_('Session is invalid or expired. Please sign in again.', 401);
   }
 
@@ -247,16 +255,7 @@ function passwordHash_(password, salt) {
   return base64UrlBytes_(result);
 }
 
-function enforceRateLimit_(email) {
-  const row = findRateRow_(email);
-  if (!row) return;
-  const start = new Date(row.start).getTime();
-  if (Date.now() - start < CFG.RATE_WINDOW_SECONDS * 1000 &&
-      row.count >= CFG.MAX_LOGIN_ATTEMPTS) {
-    throw publicError_('Too many attempts. Try again in 15 minutes.', 429);
-  }
-}
-function recordFailedLogin_(email) {
+function beginLoginAttempt_(email) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -265,15 +264,19 @@ function recordFailedLogin_(email) {
     const key = sha256_(email);
     const now = new Date();
     for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][0]) === key) {
-        const started = new Date(rows[i][1]);
-        if (now.getTime() - started.getTime() >= CFG.RATE_WINDOW_SECONDS * 1000) {
-          tab.getRange(i + 1, 2, 1, 2).setValues([[now.toISOString(), 1]]);
-        } else {
-          tab.getRange(i + 1, 3).setValue(Number(rows[i][2]) + 1);
+      if (String(rows[i][0]) !== key) continue;
+      const started = new Date(rows[i][1]).getTime();
+      const count = Number(rows[i][2]) || 0;
+      if (Number.isFinite(started) &&
+          now.getTime() - started < CFG.RATE_WINDOW_SECONDS * 1000) {
+        if (count >= CFG.MAX_LOGIN_ATTEMPTS) {
+          throw publicError_('Too many attempts. Try again in 15 minutes.', 429);
         }
-        return;
+        tab.getRange(i + 1, 3).setValue(count + 1);
+      } else {
+        tab.getRange(i + 1, 2, 1, 2).setValues([[now.toISOString(), 1]]);
       }
+      return;
     }
     tab.appendRow([key, now.toISOString(), 1]);
   } finally {
@@ -326,6 +329,12 @@ function ensureSchema_() {
     if (tab.getLastRow() === 0) {
       tab.getRange(1, 1, 1, definitions[name].length).setValues([definitions[name]]);
       tab.setFrozenRows(1);
+      return;
+    }
+    const expected = definitions[name];
+    const actual = tab.getRange(1, 1, 1, expected.length).getValues()[0];
+    if (expected.some(function(header, index) { return String(actual[index]) !== header; })) {
+      throw new Error('Unexpected header schema in sheet: ' + name);
     }
   });
 }
