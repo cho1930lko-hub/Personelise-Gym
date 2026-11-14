@@ -63,4 +63,17 @@ const salt = context.randomToken_(24);
 assert.equal(Buffer.from(salt, 'base64url').length, 24, 'salt must contain 24 random bytes');
 assert.notEqual(salt, context.randomToken_(24), 'successive salts must differ');
 assert.throws(() => context.randomToken_(8), /between 16 and 32 bytes/);
-console.log('Apps Script PBKDF2 implementation matches independent Node/OpenSSL vectors.');
+
+// Verify the exact HMAC primitive used by signed session tokens against Node.
+const tokenPayload = 'eyJzdWIiOiJ1c2VyLTEiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwNDMyMDAsImp0aSI6InRlc3QifQ';
+const tokenSecret = 'test-only-token-secret-32-bytes-minimum';
+const expectedSignature = crypto.createHmac('sha256', tokenSecret)
+  .update(tokenPayload, 'utf8').digest('base64url');
+assert.equal(context.hmac_(tokenPayload, tokenSecret), expectedSignature,
+  'session token HMAC must match independent Node/OpenSSL output');
+assert.equal(context.constantTimeEqual_(expectedSignature, expectedSignature), true);
+assert.equal(context.constantTimeEqual_(expectedSignature, expectedSignature + 'x'), false);
+assert.equal(context.constantTimeEqual_('short', 'longer'), false);
+assert.equal(context.constantTimeEqual_('', ''), true);
+
+console.log('Apps Script PBKDF2, UUID salt, and session HMAC primitives passed independent Node/OpenSSL checks.');
