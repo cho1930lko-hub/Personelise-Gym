@@ -51,7 +51,7 @@ class AuthApiClient {
       body: jsonEncode(body),
     );
     final decoded = _decode(response);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (decoded['error'] is String || response.statusCode < 200 || response.statusCode >= 300) {
       throw AuthApiException(
         decoded['error'] is String ? decoded['error'] as String : 'Authentication failed.',
         statusCode: response.statusCode,
@@ -61,12 +61,13 @@ class AuthApiClient {
   }
 
   Future<Map<String, dynamic>> getProfile(AuthSession session) async {
-    final response = await _client.get(
-      baseUri.replace(queryParameters: {...baseUri.queryParameters, 'action': 'profile'}),
-      headers: {'authorization': 'Bearer ${session.accessToken}', 'accept': 'application/json'},
+    final response = await _client.post(
+      baseUri,
+      headers: const {'content-type': 'application/json', 'accept': 'application/json'},
+      body: jsonEncode({'action': 'profile', 'access_token': session.accessToken}),
     );
     final decoded = _decode(response);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    if (decoded['error'] is String || response.statusCode < 200 || response.statusCode >= 300) {
       throw AuthApiException(
         decoded['error'] is String ? decoded['error'] as String : 'Profile request failed.',
         statusCode: response.statusCode,
@@ -79,10 +80,10 @@ class AuthApiClient {
     final response = await _client.post(
       baseUri,
       headers: {'authorization': 'Bearer ${session.accessToken}', 'content-type': 'application/json'},
-      body: jsonEncode({'action': 'logout'}),
+      body: jsonEncode({'action': 'logout', 'access_token': session.accessToken}),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final decoded = _decode(response);
+    final decoded = _decode(response);
+    if (decoded['error'] is String || response.statusCode < 200 || response.statusCode >= 300) {
       throw AuthApiException(
         decoded['error'] is String ? decoded['error'] as String : 'Logout failed.',
         statusCode: response.statusCode,
