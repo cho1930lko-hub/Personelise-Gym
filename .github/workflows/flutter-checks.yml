@@ -75,11 +75,11 @@ jobs:
 
       - name: Build debug APK
         id: build-apk
-        if: always() && !cancelled()
+        if: success()
         run: flutter build apk --debug
 
       - name: Upload debug APK
-        if: always() && !cancelled() && steps.build-apk.outcome == 'success'
+        if: success() && steps.build-apk.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: personelise-gym-debug-apk
