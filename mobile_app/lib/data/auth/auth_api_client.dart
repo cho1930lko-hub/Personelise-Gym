@@ -5,9 +5,10 @@ import 'package:http/http.dart' as http;
 import 'auth_session.dart';
 
 class AuthApiException implements Exception {
-  const AuthApiException(this.message, {this.statusCode});
+  const AuthApiException(this.message, {this.statusCode, this.code});
   final String message;
   final int? statusCode;
+  final String? code;
 
   @override
   String toString() => message;
@@ -90,6 +91,7 @@ class AuthApiClient {
       throw AuthApiException(
         decoded['error'] is String ? decoded['error'] as String : 'Authentication failed.',
         statusCode: response.statusCode,
+        code: decoded['code'] is String ? decoded['code'] as String : null,
       );
     }
     return AuthSession.fromJson(decoded);
