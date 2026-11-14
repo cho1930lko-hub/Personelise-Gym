@@ -22,7 +22,7 @@ const Utilities = {
     return Array.from(crypto.createHmac('sha256', Buffer.from(key)).update(Buffer.from(value)).digest());
   },
   base64EncodeWebSafe(value) {
-    return Buffer.from(value).toString('base64').replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_');
+    return Buffer.from(value).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
   },
 };
 const context = vm.createContext({ Utilities });
@@ -46,7 +46,7 @@ for (const iterations of [2, 3, 100]) {
   const salt = 'dGVzdC1zYWx0';
   const actual = context.passwordHashWithIterations_('gym-pass', salt, iterations, 'server-pepper');
   const reference = expected('gym-pass', Buffer.from(salt, 'base64url'), iterations, 'server-pepper');
-  assert.equal(actual, reference, `PBKDF2 mismatch at ${iterations} iterations`);
+  assert.equal(actual, reference, \`PBKDF2 mismatch at \${iterations} iterations\`);
 }
 
 assert.throws(
