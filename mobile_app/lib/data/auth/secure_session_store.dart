@@ -33,5 +33,5 @@ class SecureSessionStore {
     }
   }
 
-  Future<void> clear() => _store.write(storageKey, '');
+  Future<void> clear() => _store.delete(storageKey);
 }
