@@ -72,7 +72,7 @@ function signup_(body) {
   const password = validatePassword_(body.password);
   const rawDisplayName = String(body.display_name || '').trim();
   if (rawDisplayName.length < 2 || rawDisplayName.length > 80 ||
-      /[\\u0000-\\u001F\\u007F]/.test(rawDisplayName)) {
+      /[\u0000-\u001F\u007F]/.test(rawDisplayName)) {
     throw publicError_('Enter a name between 2 and 80 characters.', 400);
   }
   // Prevent user-controlled names from being interpreted as spreadsheet formulas.
