@@ -359,9 +359,17 @@ function sha256_(value) {
   ));
 }
 function randomToken_(bytes) {
-  const seed = Utilities.getUuid() + ':' + Utilities.getUuid() + ':' + Date.now();
-  const digest = Utilities.computeHmacSha256Signature(seed, getProperty_('TOKEN_SECRET'));
-  return base64UrlBytes_(digest).substring(0, bytes);
+  if (!Number.isSafeInteger(bytes) || bytes < 16 || bytes > 32) {
+    throw new Error('Random token length must be between 16 and 32 bytes.');
+  }
+  // Apps Script documents getUuid() as equivalent to java.util.UUID.randomUUID().
+  // Java specifies randomUUID() uses a cryptographically strong PRNG. Two UUIDs
+  // provide 244 random bits after UUID version/variant bits are applied.
+  const uuidMaterial = Utilities.getUuid().replace(/-/g, '') +
+    Utilities.getUuid().replace(/-/g, '');
+  const randomBytes = Utilities.newBlob(uuidMaterial).getBytes().slice(0, bytes);
+  if (randomBytes.length !== bytes) throw new Error('Secure random generation failed.');
+  return base64UrlBytes_(randomBytes);
 }
 function base64Url_(text) {
   return base64UrlBytes_(Utilities.newBlob(text).getBytes());
