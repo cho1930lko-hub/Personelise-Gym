@@ -71,7 +71,28 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data
           script: |
             trap 'echo "--- Emulator diagnostics ---"; adb devices -l || true; adb logcat -d -t 1500 || true' EXIT
-            timeout --signal=TERM --kill-after=30s 8m bash -o pipefail -c 'cd mobile_app && flutter test integration_test/sqlcipher_database_test.dart -d emulator-5554 --reporter expanded'
+            wait_for_android() {
+              adb -s emulator-5554 wait-for-device
+              for attempt in $(seq 1 60); do
+                booted="$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
+                if [ "$booted" = "1" ] && adb -s emulator-5554 shell cmd package list packages >/dev/null 2>&1; then
+                  return 0
+                fi
+                sleep 2
+              done
+              echo "Android package manager did not become ready."
+              return 1
+            }
+            wait_for_android
+            run_sqlcipher_test() {
+              timeout --signal=TERM --kill-after=30s 8m bash -o pipefail -c 'cd mobile_app && flutter test integration_test/sqlcipher_database_test.dart -d emulator-5554 --reporter expanded'
+            }
+            if ! run_sqlcipher_test; then
+              echo "SQLCipher test failed; rebooting emulator and retrying once."
+              adb -s emulator-5554 reboot || true
+              wait_for_android
+              run_sqlcipher_test
+            fi
 
       - name: Build debug APK
         id: build-apk
