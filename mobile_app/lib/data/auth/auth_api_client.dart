@@ -79,7 +79,7 @@ class AuthApiClient {
   Future<void> logout(AuthSession session) async {
     final response = await _client.post(
       baseUri,
-      headers: {'authorization': 'Bearer ${session.accessToken}', 'content-type': 'application/json'},
+      headers: const {'content-type': 'application/json', 'accept': 'application/json'},
       body: jsonEncode({'action': 'logout', 'access_token': session.accessToken}),
     );
     final decoded = _decode(response);
