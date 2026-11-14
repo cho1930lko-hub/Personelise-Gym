@@ -108,7 +108,7 @@ void main() {
         destinations.add(request.url);
         if (request.method == 'POST') {
           expect(request.url.host, 'script.google.com');
-          expect(request.body, contains('"action":"login"'));
+          expect((request as http.Request).body, contains('"action":"login"'));
           return http.Response('', 302, headers: {
             'location': 'https://script.googleusercontent.com/macros/echo?key=one-time',
           });
