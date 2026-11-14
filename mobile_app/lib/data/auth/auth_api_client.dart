@@ -28,7 +28,8 @@ class AuthApiClient {
     required String email,
     required String password,
     required String displayName,
-  }) => _sendAuth('signup', {
+  }) => _sendAuth({
+    'action': 'signup',
     'email': email.trim().toLowerCase(),
     'password': password,
     'display_name': displayName.trim(),
@@ -37,14 +38,15 @@ class AuthApiClient {
   Future<AuthSession> signIn({
     required String email,
     required String password,
-  }) => _sendAuth('login', {
+  }) => _sendAuth({
+    'action': 'login',
     'email': email.trim().toLowerCase(),
     'password': password,
   });
 
-  Future<AuthSession> _sendAuth(String action, Map<String, Object?> body) async {
+  Future<AuthSession> _sendAuth(Map<String, Object?> body) async {
     final response = await _client.post(
-      baseUri.resolve(action),
+      baseUri,
       headers: const {'content-type': 'application/json', 'accept': 'application/json'},
       body: jsonEncode(body),
     );
@@ -60,7 +62,7 @@ class AuthApiClient {
 
   Future<Map<String, dynamic>> getProfile(AuthSession session) async {
     final response = await _client.get(
-      baseUri.resolve('profile'),
+      baseUri.replace(queryParameters: {...baseUri.queryParameters, 'action': 'profile'}),
       headers: {'authorization': 'Bearer ${session.accessToken}', 'accept': 'application/json'},
     );
     final decoded = _decode(response);
@@ -75,8 +77,9 @@ class AuthApiClient {
 
   Future<void> logout(AuthSession session) async {
     final response = await _client.post(
-      baseUri.resolve('logout'),
-      headers: {'authorization': 'Bearer ${session.accessToken}'},
+      baseUri,
+      headers: {'authorization': 'Bearer ${session.accessToken}', 'content-type': 'application/json'},
+      body: jsonEncode({'action': 'logout'}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final decoded = _decode(response);
