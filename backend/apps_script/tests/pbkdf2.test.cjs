@@ -12,11 +12,8 @@ const source = fs.readFileSync(
 let uuidCounter = 0;
 const Utilities = {
   getUuid() {
-    const values = [
-      '123e4567-e89b-42d3-a456-426614174000',
-      '987e6543-e21b-43d2-b654-123456789abc',
-    ];
-    return values[uuidCounter++ % values.length];
+    const suffix = String(uuidCounter++).padStart(12, '0');
+    return '123e4567-e89b-42d3-a456-' + suffix;
   },
   newBlob(value) {
     const bytes = Buffer.from(String(value), 'utf8');
