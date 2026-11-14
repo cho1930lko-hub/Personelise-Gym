@@ -95,7 +95,14 @@ class _AuthGateState extends State<AuthGate> {
         final api = _api;
         if (api != null) {
           try {
-            await api.getProfile(session);
+            final serverProfile = await api.getProfile(session);
+            if (serverProfile['user_id'] != session.userId) {
+              // A successful response for a different/missing identity is not
+              // an offline condition: never open another account's local data.
+              await _sessionStore.clear();
+              if (mounted) setState(() => _loading = false);
+              return;
+            }
           } on AuthApiException catch (error) {
             if (error.code == 'AUTH_INVALID') {
               await _sessionStore.clear();
