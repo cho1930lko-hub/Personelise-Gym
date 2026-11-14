@@ -23,7 +23,7 @@ Every call is POST JSON to the exact Web App URL:
 - `{action:"profile", access_token}`
 - `{action:"logout", access_token}`
 
-Signup/login return `access_token`, `user_id`, `email`, `display_name`, and `expires_at`. Profile identity is derived from the signed token; the client does not send a user ID. Tokens are HMAC-SHA256 signed, expire after 12 hours, and are checked against a server-side revocation/session table. Passwords use salted PBKDF2-HMAC-SHA256 plus a server-only pepper. Login attempts are rate-limited by normalized email. The exact PBKDF2 helper is parameterized for known-answer testing; run `node backend/apps_script/tests/pbkdf2.test.cjs` from the repository root to compare it against Node/OpenSSL PBKDF2 vectors.
+Signup/login return `access_token`, `user_id`, `email`, `display_name`, and `expires_at`. Profile identity is derived from the signed token; the client does not send a user ID. Tokens are HMAC-SHA256 signed, expire after 12 hours, and are checked against a server-side revocation/session table. Passwords use 24-byte salts generated from two Apps Script `Utilities.getUuid()` values. Google documents `getUuid()` as equivalent to Java `UUID.randomUUID()`, and Java documents `randomUUID()` as using a cryptographically strong pseudo-random number generator. PBKDF2-HMAC-SHA256 uses a server-only pepper. Login attempts are rate-limited by normalized email. The PBKDF2 helper and UUID-derived salt generator have local tests; run `node backend/apps_script/tests/pbkdf2.test.cjs` from the repository root to compare it against Node/OpenSSL PBKDF2 vectors.
 
 ## Important limitations and security gate
 
