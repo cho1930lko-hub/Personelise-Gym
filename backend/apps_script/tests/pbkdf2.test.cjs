@@ -33,7 +33,7 @@ function expected(password, salt, iterations, pepper) {
     .toString('base64url');
 }
 
-// RFC 7914 / PBKDF2-HMAC-SHA256 one-iteration known-answer vector.
+// Published PBKDF2-HMAC-SHA256 one-iteration known-answer vector.
 assert.equal(
   context.passwordHashWithIterations_('password', 'c2FsdA', 1, ''),
   'Eg-2z_z4syxD5yJSVsT4N6hlSMkszDVICAWYfLcL4Xs',
