@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../data/auth/auth_api_client.dart';
@@ -80,7 +82,7 @@ class _AuthGateState extends State<AuthGate> {
     super.initState();
     final uri = AuthConfig.baseUri;
     if (uri != null) _api = AuthApiClient(baseUri: uri);
-    _restoreSession();
+    unawaited(_restoreSession());
   }
 
   Future<void> _restoreSession() async {
@@ -200,7 +202,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void dispose() {
     _api?.close();
-    _database.close();
+    unawaited(_database.close());
     super.dispose();
   }
 
