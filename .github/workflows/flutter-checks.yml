@@ -33,7 +33,7 @@ jobs:
       - name: Verify Apps Script PBKDF2 implementation
         working-directory: .
         run: node backend/apps_script/tests/pbkdf2.test.cjs
-
+\n      - name: Verify Apps Script authentication security\n        working-directory: .\n        run: node backend/apps_script/tests/auth_security.test.cjs\n
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
