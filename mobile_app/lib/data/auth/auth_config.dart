@@ -8,6 +8,6 @@ class AuthConfig {
     if (value.isEmpty) return null;
     final uri = Uri.tryParse(value);
     if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return null;
-    return uri.toString().endsWith('/') ? uri : uri.replace(path: '${uri.path}/');
+    return uri;
   }
 }
