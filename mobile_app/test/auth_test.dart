@@ -164,6 +164,25 @@ void main() {
     expect(result['user_id'], 'account-a');
   });
 
+  test('authentication error code is preserved for revoked sessions', () async {
+    final client = AuthApiClient(
+      baseUri: Uri.parse('https://script.google.com/macros/s/test/exec'),
+      client: MockClient((_) async => http.Response(
+        jsonEncode({'error': 'Session has been revoked.', 'code': 'AUTH_INVALID'}),
+        200,
+      )),
+    );
+
+    await expectLater(
+      client.getProfile(session()),
+      throwsA(isA<AuthApiException>().having(
+        (error) => error.code,
+        'code',
+        'AUTH_INVALID',
+      )),
+    );
+  });
+
   test('API error response is surfaced without accepting a session', () async {
     final client = AuthApiClient(
       baseUri: Uri.parse('https://script.google.com/macros/s/test/exec'),
