@@ -25,6 +25,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js for backend security tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify Apps Script PBKDF2 implementation
+        working-directory: .
+        run: node backend/apps_script/tests/pbkdf2.test.cjs
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
