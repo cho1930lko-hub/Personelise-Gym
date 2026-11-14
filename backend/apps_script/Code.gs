@@ -367,9 +367,15 @@ function randomToken_(bytes) {
   // provide 244 random bits after UUID version/variant bits are applied.
   const uuidMaterial = Utilities.getUuid().replace(/-/g, '') +
     Utilities.getUuid().replace(/-/g, '');
-  const randomBytes = Utilities.newBlob(uuidMaterial).getBytes().slice(0, bytes);
-  if (randomBytes.length !== bytes) throw new Error('Secure random generation failed.');
-  return base64UrlBytes_(randomBytes);
+  const randomBytes = [];
+  for (let i = 0; i < uuidMaterial.length && randomBytes.length < bytes * 2; i += 2) {
+    randomBytes.push(parseInt(uuidMaterial.substring(i, i + 2), 16));
+  }
+  const selectedBytes = randomBytes.slice(0, bytes);
+  if (selectedBytes.length !== bytes || selectedBytes.some(value => !Number.isInteger(value))) {
+    throw new Error('Secure random generation failed.');
+  }
+  return base64UrlBytes_(selectedBytes);
 }
 function base64Url_(text) {
   return base64UrlBytes_(Utilities.newBlob(text).getBytes());
