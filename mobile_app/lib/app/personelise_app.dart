@@ -89,6 +89,24 @@ class _AuthGateState extends State<AuthGate> {
     try {
       final session = await _sessionStore.read();
       if (session != null) {
+        // Validate the cached token whenever the service is reachable. If the
+        // network is unavailable, retain the unexpired local session for
+        // offline use; a server-confirmed revoked/expired token is cleared.
+        final api = _api;
+        if (api != null) {
+          try {
+            await api.getProfile(session);
+          } on AuthApiException catch (error) {
+            if (error.code == 'AUTH_INVALID') {
+              await _sessionStore.clear();
+              if (mounted) setState(() => _loading = false);
+              return;
+            }
+            // Temporary server errors do not erase offline local access.
+          } catch (_) {
+            // Network failure: continue with the still-unexpired local session.
+          }
+        }
         final profile = await _profiles.getProfile(session.userId);
         if (!mounted) return;
         setState(() {
