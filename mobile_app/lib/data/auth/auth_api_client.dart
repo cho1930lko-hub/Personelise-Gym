@@ -107,6 +107,7 @@ class AuthApiClient {
       throw AuthApiException(
         decoded['error'] is String ? decoded['error'] as String : 'Profile request failed.',
         statusCode: response.statusCode,
+        code: decoded['code'] is String ? decoded['code'] as String : null,
       );
     }
     return decoded;
