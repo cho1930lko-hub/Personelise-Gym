@@ -15,6 +15,9 @@ class _MemoryKeyStore implements SecureKeyValueStore {
 
   @override
   Future<void> write(String name, String value) async {}
+
+  @override
+  Future<void> delete(String name) async {}
 }
 
 void main() {
