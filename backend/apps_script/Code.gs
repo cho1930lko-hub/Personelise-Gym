@@ -232,16 +232,15 @@ function validatePassword_(value) {
 // PBKDF2-HMAC-SHA256; pepper is stored only in Apps Script Script Properties.
 function passwordHash_(password, salt) {
   const pepper = getProperty_('PASSWORD_PEPPER');
-  // Apps Script's computeHmacSha256Signature(value, key) expects the HMAC
-  // key as a string. Passing a byte[] as the second argument is unsupported.
-  // Keep the pepper server-side and use the UTF-8 password+pepper as the key.
-  const hmacKey = password + pepper;
+  // Use the documented Byte[]/Byte[] overload: both the HMAC input and key
+  // are UTF-8/raw byte arrays. This is required for the PBKDF2 block loop.
+  const passwordKey = Utilities.newBlob(password + pepper).getBytes();
   const saltBytes = Utilities.base64DecodeWebSafe(salt);
   const block = saltBytes.concat([0, 0, 0, 1]);
-  let u = Utilities.computeHmacSha256Signature(block, hmacKey);
+  let u = Utilities.computeHmacSha256Signature(block, passwordKey);
   let result = u.slice();
   for (let i = 1; i < CFG.PASSWORD_ITERATIONS; i++) {
-    u = Utilities.computeHmacSha256Signature(u, hmacKey);
+    u = Utilities.computeHmacSha256Signature(u, passwordKey);
     for (let j = 0; j < result.length; j++) result[j] = result[j] ^ u[j];
   }
   return base64UrlBytes_(result);
