@@ -98,6 +98,52 @@ void main() {
     expect(result.userId, 'account-a');
   });
 
+  test('Apps Script ContentService POST redirect is followed with a safe GET', () async {
+    final methods = <String>[];
+    final destinations = <Uri>[];
+    final client = AuthApiClient(
+      baseUri: Uri.parse('https://script.google.com/macros/s/test/exec'),
+      client: MockClient((request) async {
+        methods.add(request.method);
+        destinations.add(request.url);
+        if (request.method == 'POST') {
+          expect(request.url.host, 'script.google.com');
+          expect(request.body, contains('"action":"login"'));
+          return http.Response('', 302, headers: {
+            'location': 'https://script.googleusercontent.com/macros/echo?key=one-time',
+          });
+        }
+        expect(request.method, 'GET');
+        expect(request.url.host, 'script.googleusercontent.com');
+        expect(request.headers.containsKey('authorization'), isFalse);
+        return http.Response(jsonEncode(session().toJson()), 200);
+      }),
+    );
+
+    final result = await client.signIn(
+      email: 'a@example.test',
+      password: 'correct horse battery staple',
+    );
+
+    expect(result.userId, 'account-a');
+    expect(methods, ['POST', 'GET']);
+    expect(destinations.last.host, 'script.googleusercontent.com');
+  });
+
+  test('Apps Script redirect to an untrusted host is rejected', () async {
+    final client = AuthApiClient(
+      baseUri: Uri.parse('https://script.google.com/macros/s/test/exec'),
+      client: MockClient((_) async => http.Response('', 302, headers: {
+        'location': 'https://attacker.example/collect',
+      })),
+    );
+
+    await expectLater(
+      client.signIn(email: 'a@example.test', password: 'correct horse battery staple'),
+      throwsA(isA<AuthApiException>()),
+    );
+  });
+
   test('profile uses POST body token and never trusts a user id argument', () async {
     late http.Request captured;
     final client = AuthApiClient(
