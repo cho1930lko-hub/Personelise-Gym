@@ -294,14 +294,20 @@ function beginLoginAttempt_(email) {
   }
 }
 function clearRateLimit_(email) {
-  const tab = sheet_(CFG.RATE_LIMITS);
-  const rows = tab.getDataRange().getValues();
-  const key = sha256_(email);
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]) === key) {
-      tab.deleteRow(i + 1);
-      return;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const tab = sheet_(CFG.RATE_LIMITS);
+    const rows = tab.getDataRange().getValues();
+    const key = sha256_(email);
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]) === key) {
+        tab.deleteRow(i + 1);
+        return;
+      }
     }
+  } finally {
+    lock.releaseLock();
   }
 }
 function findRateRow_(email) {
