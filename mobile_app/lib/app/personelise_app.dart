@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'fitness_home_screen.dart';
+import 'workout_screen.dart';
 
 import '../data/auth/auth_api_client.dart';
 import '../data/auth/auth_config.dart';
@@ -491,7 +492,9 @@ class _AppShellState extends State<AppShell> {
       body: SafeArea(
         child: _selectedIndex == 0
             ? FitnessHomeScreen(userId: widget.userId, email: widget.email, repository: widget.repository)
-            : _PlaceholderPage(
+            : _selectedIndex == 1
+                ? WorkoutScreen(userId: widget.userId, repository: widget.repository)
+                : _PlaceholderPage(
           title: _titles[_selectedIndex],
           description: _selectedIndex == 0
               ? 'Signed in as ${widget.email}. Your personal training space is ready for the next development phase.'
