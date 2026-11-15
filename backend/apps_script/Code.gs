@@ -168,9 +168,11 @@ function authenticate_(tokenValue) {
     throw publicError_('Session is invalid or expired. Please sign in again.', 401);
   }
   const now = Math.floor(Date.now() / 1000);
-  if (typeof payload.sub !== 'string' || !payload.sub ||
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+      typeof payload.sub !== 'string' || !payload.sub ||
+      typeof payload.jti !== 'string' || !payload.jti ||
       !Number.isSafeInteger(payload.iat) || !Number.isSafeInteger(payload.exp) ||
-      !payload.jti || payload.exp <= now || payload.iat > now + 60 ||
+      payload.exp <= now || payload.iat > now + 60 ||
       payload.exp <= payload.iat ||
       payload.exp - payload.iat > CFG.TOKEN_TTL_SECONDS) {
     throw publicError_('Session is invalid or expired. Please sign in again.', 401);
