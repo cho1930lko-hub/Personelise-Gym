@@ -22,8 +22,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   if(name.length<2||weight==null||weight<0||weight>1000||reps==null||reps<1||reps>500){setState(()=>_error='Exercise, valid weight and reps भरें.');return;}
   setState(()=>_saving=true);
   try{final now=DateTime.now().toUtc();await widget.repository.saveWorkout(WorkoutLog(recordId:const Uuid().v4(),userId:widget.userId,workoutDate:now,muscleGroup:_group,exerciseName:name,sets:List.generate(_sets,(_)=>WorkoutSet(weightKg:weight,reps:reps)),notes:_notes.text.trim(),createdAt:now,updatedAt:now));
-   if(!mounted)return;_exercise.clear();_weight.clear();_reps.clear();_notes.clear();setState(()=>{_error=null,_saving=false,_refresh()});ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Workout saved on this device')));
-  }catch(_){if(mounted)setState(()=>{_saving=false,_error='Workout save नहीं हुआ। फिर कोशिश करें।'});}
+   if(!mounted)return;_exercise.clear();_weight.clear();_reps.clear();_notes.clear();setState(() { _error=null; _saving=false; _refresh(); });ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Workout saved on this device')));
+  }catch(_){if(mounted)setState(() { _saving=false; _error='Workout save नहीं हुआ। फिर कोशिश करें।'; });}
  }
  @override Widget build(BuildContext context)=>Container(color:_bg,child:ListView(padding:const EdgeInsets.fromLTRB(18,12,18,28),children:[
   Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:_dark,borderRadius:BorderRadius.circular(22)),child:Row(children:[const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('TRAIN WITH INTENT',style:TextStyle(color:Color(0xFFB8C5BE),fontSize:10,letterSpacing:1.6,fontWeight:FontWeight.w800)),SizedBox(height:7),Text('Log your workout',style:TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w800)),SizedBox(height:4),Text('Every rep counts. Keep your progress personal.',style:TextStyle(color:Color(0xFFB8C5BE),fontSize:11))])),Container(width:44,height:44,decoration:BoxDecoration(color:_lime,borderRadius:BorderRadius.circular(14)),child:const Icon(Icons.fitness_center_rounded,color:_dark))])),
