@@ -77,7 +77,9 @@ jobs:
       - name: Build debug APK
         id: build-apk
         if: success()
-        run: flutter build apk --debug
+        run: >-
+          flutter build apk --debug
+          --dart-define=AUTH_API_BASE_URL=https://script.google.com/macros/s/AKfycbwtWSUT4-2nuuctvj05S5ynsVF3gQXQrLyl8-gNOKRw1LBDqYM_Y473UKNUvqQkh9Lv6A/exec
 
       - name: Upload debug APK
         if: success() && steps.build-apk.outcome == 'success'
