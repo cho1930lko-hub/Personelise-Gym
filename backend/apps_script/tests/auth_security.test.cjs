@@ -30,7 +30,10 @@ const Utilities = {
   DigestAlgorithm: { SHA_256: 'SHA_256' },
   Charset: { UTF_8: 'UTF_8' },
 };
-const context = vm.createContext({ Utilities, console, Date, JSON, Math, Number, String, Object, Array, Error });
+const LockService = {
+  getScriptLock: () => ({ waitLock() {}, releaseLock() {} }),
+};
+const context = vm.createContext({ Utilities, LockService, console, Date, JSON, Math, Number, String, Object, Array, Error });
 vm.runInContext(source, context, { filename: 'Code.gs' });
 
 function makeSheet(rows) {
@@ -98,4 +101,16 @@ users[1][6] = 'disabled';
 rejectsAuth(() => context.authenticate_(inactive), 'disabled account rejected');
 users[1][6] = 'active';
 
-console.log('Apps Script authentication security tests passed: valid, tampered, expired, future, excessive-lifetime, malformed, revoked, cross-user, and disabled-account tokens.');
+// The rate-limit counter is reserved atomically and blocks attempt nine.
+for (let attempt = 0; attempt < 8; attempt++) context.beginLoginAttempt_('limit@example.test');
+assert.throws(
+  () => context.beginLoginAttempt_('limit@example.test'),
+  error => error && error.statusCode === 429,
+  'ninth login attempt in the active window must be blocked',
+);
+const rateKey = context.sha256_('limit@example.test');
+assert.equal(rateRows.find(row => row[0] === rateKey)[2], 8, 'rate limit stores exactly eight attempts');
+context.clearRateLimit_('limit@example.test');
+assert.equal(rateRows.some(row => row[0] === rateKey), false, 'successful login clears rate-limit row');
+
+console.log('Apps Script authentication security tests passed: token validation, revocation, account isolation, disabled accounts, and login rate limiting.');
