@@ -16,7 +16,10 @@ const rateRows = [['email_hash','window_start','attempt_count']];
 function bytes(value) { return Buffer.from(value); }
 const Utilities = {
   getUuid: () => crypto.randomUUID(),
-  newBlob(value) { return { getBytes: () => [...bytes(value)] , getDataAsString: () => bytes(value).toString('utf8') }; },
+  newBlob(value) {
+    const data = Array.isArray(value) ? Buffer.from(value.map(byte => byte & 0xff)) : bytes(value);
+    return { getBytes: () => [...data], getDataAsString: () => data.toString('utf8') };
+  },
   base64DecodeWebSafe(value) {
     const s = String(value).replace(/-/g, '+').replace(/_/g, '/');
     return [...Buffer.from(s + '='.repeat((4 - s.length % 4) % 4), 'base64')];
