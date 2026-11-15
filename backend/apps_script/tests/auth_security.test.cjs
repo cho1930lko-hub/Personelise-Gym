@@ -58,6 +58,11 @@ function tokenFor(payload = {}) {
   const encoded = context.base64Url_(JSON.stringify(claims));
   return encoded + '.' + context.hmac_(encoded, secret);
 }
+function tokenForRawJson(json) {
+  const encoded = context.base64Url_(json);
+  return encoded + '.' + context.hmac_(encoded, secret);
+}
+
 function register(token, userId = 'user-a', revoked = '') {
   sessions.push([context.sha256_(token), userId, new Date((now + 3600) * 1000).toISOString(), revoked, new Date().toISOString()]);
 }
@@ -75,6 +80,9 @@ rejectsAuth(() => context.authenticate_(tokenFor({ exp: now - 1 })), 'expired to
 rejectsAuth(() => context.authenticate_(tokenFor({ iat: now + 61 })), 'future-issued token rejected');
 rejectsAuth(() => context.authenticate_(tokenFor({ exp: now + 13 * 60 * 60 })), 'excessive token lifetime rejected');
 rejectsAuth(() => context.authenticate_('not-a-token'), 'malformed token rejected');
+rejectsAuth(() => context.authenticate_(tokenForRawJson('null')), 'null claims rejected');
+rejectsAuth(() => context.authenticate_(tokenForRawJson('[]')), 'array claims rejected');
+rejectsAuth(() => context.authenticate_(tokenFor({ jti: 123 })), 'non-string token id rejected');
 
 const revoked = tokenFor({ jti: 'revoked' });
 register(revoked, 'user-a', new Date().toISOString());
