@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'fitness_home_screen.dart';
+
 import '../data/auth/auth_api_client.dart';
 import '../data/auth/auth_config.dart';
 import '../data/auth/auth_session.dart';
@@ -239,7 +241,9 @@ class _AuthGateState extends State<AuthGate> {
     final session = _session;
     if (session != null && !_needsProfile) {
       return AppShell(
+        userId: session.userId,
         email: session.email,
+        repository: _profiles,
         busy: _busy,
         onLogout: _logout,
       );
@@ -449,7 +453,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({required this.email, required this.busy, required this.onLogout, super.key});
+  const AppShell({required this.userId, required this.email, required this.repository, required this.busy, required this.onLogout, super.key});
+  final String userId;
+  final LocalFitnessRepository repository;
   final String email;
   final bool busy;
   final VoidCallback onLogout;
@@ -483,7 +489,9 @@ class _AppShellState extends State<AppShell> {
         ],
       ),
       body: SafeArea(
-        child: _PlaceholderPage(
+        child: _selectedIndex == 0
+            ? FitnessHomeScreen(userId: widget.userId, email: widget.email, repository: widget.repository)
+            : _PlaceholderPage(
           title: _titles[_selectedIndex],
           description: _selectedIndex == 0
               ? 'Signed in as ${widget.email}. Your personal training space is ready for the next development phase.'
